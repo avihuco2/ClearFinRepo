@@ -248,7 +248,7 @@ jobs:
         working-directory: packages/infra
 
       - name: Build login page
-        run: npm run build --workspace=packages/login-page
+        run: npm run build --workspace=packages/login-page && npm run build:html --workspace=packages/login-page
 
       - name: Sync login page to S3
         run: |
@@ -346,7 +346,7 @@ jobs:
         working-directory: packages/infra
 
       - name: Build login page
-        run: npm run build --workspace=packages/login-page
+        run: npm run build --workspace=packages/login-page && npm run build:html --workspace=packages/login-page
 
       - name: Sync login page to S3
         run: |
@@ -444,7 +444,7 @@ jobs:
         working-directory: packages/infra
 
       - name: Build login page
-        run: npm run build --workspace=packages/login-page
+        run: npm run build --workspace=packages/login-page && npm run build:html --workspace=packages/login-page
 
       - name: Sync login page to S3
         run: |
