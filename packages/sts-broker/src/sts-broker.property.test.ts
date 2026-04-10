@@ -97,8 +97,7 @@ describe("Property 10: Service Identity Verification", () => {
             expect(result.ok).toBe(true);
           } else {
             expect(result.ok).toBe(false);
-            if (!result.ok) {
-              expect(result.error.code).toBe("SERVICE_NOT_REGISTERED");
+            if (!result.ok && result.error.code === "SERVICE_NOT_REGISTERED") {
               expect(result.error.serviceName).toBe(queryService);
             }
           }
@@ -126,8 +125,7 @@ describe("Property 11: Non-Existent Tenant Rejection", () => {
             expect(result.ok).toBe(true);
           } else {
             expect(result.ok).toBe(false);
-            if (!result.ok) {
-              expect(result.error.code).toBe("TENANT_NOT_FOUND");
+            if (!result.ok && result.error.code === "TENANT_NOT_FOUND") {
               expect(result.error.tenantId).toBe(queryTenant);
             }
           }

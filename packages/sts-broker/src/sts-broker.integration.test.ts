@@ -145,7 +145,9 @@ describe("STS Broker Integration: full JIT credential flow", () => {
     expect(result.ok).toBe(false);
     if (result.ok) return;
     expect(result.error.code).toBe("STS_ASSUME_ROLE_FAILED");
-    expect(result.error.tenantId).toBe("tenant-001");
+    if (result.error.code === "STS_ASSUME_ROLE_FAILED") {
+      expect(result.error.tenantId).toBe("tenant-001");
+    }
   });
 
   it("issues credentials for multiple tenants with isolated policies", async () => {

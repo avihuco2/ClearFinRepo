@@ -111,9 +111,10 @@ describe("verifyServiceIdentity", () => {
     const broker = makeBroker();
     const result = broker.verifyServiceIdentity("rogue-service");
     expect(result.ok).toBe(false);
-    if (!result.ok) {
-      expect(result.error.code).toBe("SERVICE_NOT_REGISTERED");
+    if (!result.ok && result.error.code === "SERVICE_NOT_REGISTERED") {
       expect(result.error.serviceName).toBe("rogue-service");
+    } else {
+      expect.unreachable("Expected SERVICE_NOT_REGISTERED error");
     }
   });
 });
@@ -131,9 +132,10 @@ describe("validateTenantExists", () => {
     const broker = makeBroker();
     const result = broker.validateTenantExists("ghost-tenant");
     expect(result.ok).toBe(false);
-    if (!result.ok) {
-      expect(result.error.code).toBe("TENANT_NOT_FOUND");
+    if (!result.ok && result.error.code === "TENANT_NOT_FOUND") {
       expect(result.error.tenantId).toBe("ghost-tenant");
+    } else {
+      expect.unreachable("Expected TENANT_NOT_FOUND error");
     }
   });
 
@@ -252,11 +254,12 @@ describe("issueCredential", () => {
     );
 
     expect(result.ok).toBe(false);
-    if (!result.ok) {
-      expect(result.error.code).toBe("STS_ASSUME_ROLE_FAILED");
+    if (!result.ok && result.error.code === "STS_ASSUME_ROLE_FAILED") {
       expect(result.error.roleArn).toBe(defaultConfig.roleArn);
       expect(result.error.tenantId).toBe("tenant-abc");
       expect(result.error.awsErrorCode).toBe("AccessDenied");
+    } else {
+      expect.unreachable("Expected STS_ASSUME_ROLE_FAILED error");
     }
   });
 

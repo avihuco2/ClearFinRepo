@@ -146,8 +146,10 @@ describe("Sentinel Gate Integration: full deployment approval flow", () => {
     if (result.ok) return;
 
     expect(result.error.code).toBe("ARTIFACT_VALIDATION_FAILED");
-    expect(result.error.missingComponents).toContain("stsTrustPolicies");
-    expect(result.error.missingComponents).toContain("secretsManagerPolicies");
+    if (result.error.code === "ARTIFACT_VALIDATION_FAILED") {
+      expect(result.error.missingComponents).toContain("stsTrustPolicies");
+      expect(result.error.missingComponents).toContain("secretsManagerPolicies");
+    }
 
     // No approval request should have been made
     expect(approvalService.requests).toHaveLength(0);
