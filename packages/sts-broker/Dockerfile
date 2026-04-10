@@ -39,9 +39,8 @@ RUN npm ci --omit=dev --ignore-scripts
 COPY --from=build /app/packages/shared/dist/ packages/shared/dist/
 COPY --from=build /app/packages/sts-broker/dist/ packages/sts-broker/dist/
 
-# Create non-root user and switch to it
-RUN addgroup -g 1000 appgroup && adduser -u 1000 -G appgroup -D appuser
-USER appuser
+# Use existing non-root node user (UID 1000)
+USER node
 
 EXPOSE 3001
 
