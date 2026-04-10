@@ -14,7 +14,9 @@ const imageTag = app.node.tryGetContext('imageTag') ?? 'latest';
 const domainName = app.node.tryGetContext('domainName') ?? '';
 const certificateArn = app.node.tryGetContext('certificateArn') ?? '';
 
-const env: cdk.Environment = { account: accountId, region };
+const env: cdk.Environment | undefined = accountId
+  ? { account: accountId, region }
+  : undefined;
 
 // Create the four stacks matching the names used in deploy.yml
 new ClearFinCdkStack(app, `clearfin-${environment}-networking`, {
