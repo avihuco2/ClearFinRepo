@@ -265,9 +265,13 @@ jobs:
           DIST_ID=$(aws cloudfront list-distributions \
             --query "DistributionList.Items[?Comment=='clearfin-dev-login-page'].Id" \
             --output text)
-          aws cloudfront create-invalidation \
-            --distribution-id "${DIST_ID}" \
-            --paths "/*"
+          if [ -n "${DIST_ID}" ] && [ "${DIST_ID}" != "None" ]; then
+            aws cloudfront create-invalidation \
+              --distribution-id "${DIST_ID}" \
+              --paths "/*"
+          else
+            echo "No CloudFront distribution found — skipping invalidation"
+          fi
 
   # ─── Deploy to Staging ──────────────────────────────────────────────
   deploy-staging:
@@ -363,9 +367,13 @@ jobs:
           DIST_ID=$(aws cloudfront list-distributions \
             --query "DistributionList.Items[?Comment=='clearfin-staging-login-page'].Id" \
             --output text)
-          aws cloudfront create-invalidation \
-            --distribution-id "${DIST_ID}" \
-            --paths "/*"
+          if [ -n "${DIST_ID}" ] && [ "${DIST_ID}" != "None" ]; then
+            aws cloudfront create-invalidation \
+              --distribution-id "${DIST_ID}" \
+              --paths "/*"
+          else
+            echo "No CloudFront distribution found — skipping invalidation"
+          fi
 
   # ─── Deploy to Prod ────────────────────────────────────────────────
   deploy-prod:
@@ -461,9 +469,13 @@ jobs:
           DIST_ID=$(aws cloudfront list-distributions \
             --query "DistributionList.Items[?Comment=='clearfin-prod-login-page'].Id" \
             --output text)
-          aws cloudfront create-invalidation \
-            --distribution-id "${DIST_ID}" \
-            --paths "/*"
+          if [ -n "${DIST_ID}" ] && [ "${DIST_ID}" != "None" ]; then
+            aws cloudfront create-invalidation \
+              --distribution-id "${DIST_ID}" \
+              --paths "/*"
+          else
+            echo "No CloudFront distribution found — skipping invalidation"
+          fi
 
   # ─── Deployment Summary ─────────────────────────────────────────────
   summary:
