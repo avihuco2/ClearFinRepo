@@ -9,6 +9,11 @@
     "test": "vitest --run"
   },
   "dependencies": {
-    "@clearfin/shared": "*"
+    "@clearfin/shared": "*",
+    "aws-cdk-lib": "^2.248.0",
+    "constructs": "^10.6.0"
+  },
+  "devDependencies": {
+    "ts-node": "^10.9.2"
   }
 }

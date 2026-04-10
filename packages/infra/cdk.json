@@ -1,0 +1,6 @@
+{
+  "app": "npx ts-node --compiler-options '{\"module\":\"commonjs\"}' --prefer-ts-exts src/cdk/main.ts",
+  "context": {
+    "@aws-cdk/core:bootstrapQualifier": "clearfin"
+  }
+}
