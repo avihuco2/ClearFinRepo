@@ -1,0 +1,925 @@
+// Vitest Snapshot v1, https://vitest.dev/guide/snapshot.html
+
+exports[`ClearFinComputeStack > snapshot: full synthesized configuration 1`] = `
+{
+  "albConfig": {
+    "httpRedirectListener": {
+      "port": 80,
+      "protocol": "HTTP",
+      "redirectTo": "HTTPS",
+      "statusCode": 301,
+    },
+    "listeners": [
+      {
+        "certificateArn": "arn:aws:acm:il-central-1:123456789012:certificate/test-cert",
+        "defaultAction": "forward",
+        "port": 443,
+        "protocol": "HTTPS",
+        "sslPolicy": "ELBSecurityPolicy-TLS13-1-2-2021-06",
+        "targetGroupName": "clearfin-prod-auth-tg",
+      },
+    ],
+    "name": "clearfin-prod-alb",
+    "scheme": "internet-facing",
+    "securityGroupRules": {
+      "ingressCidr": "0.0.0.0/0",
+      "ingressPorts": [
+        443,
+        80,
+      ],
+    },
+    "subnetType": "public",
+    "tags": {
+      "Component": "load-balancer",
+      "Environment": "prod",
+      "Project": "ClearFin",
+    },
+    "targetGroups": [
+      {
+        "healthCheck": {
+          "healthyThreshold": 2,
+          "intervalSeconds": 30,
+          "path": "/health",
+          "port": 3000,
+          "protocol": "HTTP",
+          "timeoutSeconds": 5,
+          "unhealthyThreshold": 3,
+        },
+        "name": "clearfin-prod-auth-tg",
+        "port": 3000,
+        "protocol": "HTTP",
+        "targetType": "ip",
+      },
+      {
+        "healthCheck": {
+          "healthyThreshold": 2,
+          "intervalSeconds": 30,
+          "path": "/health",
+          "port": 3001,
+          "protocol": "HTTP",
+          "timeoutSeconds": 5,
+          "unhealthyThreshold": 3,
+        },
+        "name": "clearfin-prod-sts-tg",
+        "port": 3001,
+        "protocol": "HTTP",
+        "targetType": "ip",
+      },
+      {
+        "healthCheck": {
+          "healthyThreshold": 2,
+          "intervalSeconds": 30,
+          "path": "/health",
+          "port": 3002,
+          "protocol": "HTTP",
+          "timeoutSeconds": 5,
+          "unhealthyThreshold": 3,
+        },
+        "name": "clearfin-prod-secrets-tg",
+        "port": 3002,
+        "protocol": "HTTP",
+        "targetType": "ip",
+      },
+    ],
+  },
+  "ecrRepositoryConfigs": [
+    {
+      "encryptionType": "KMS",
+      "imageTagMutability": "IMMUTABLE",
+      "kmsKeyAlias": "clearfin-prod-ecr-key",
+      "lifecycleRules": [
+        {
+          "action": "expire",
+          "countNumber": 10,
+          "countType": "imageCountMoreThan",
+          "description": "Retain last 10 tagged images",
+          "tagStatus": "tagged",
+        },
+        {
+          "action": "expire",
+          "countNumber": 7,
+          "countType": "sinceImagePushed",
+          "countUnit": "days",
+          "description": "Expire untagged images after 7 days",
+          "tagStatus": "untagged",
+        },
+      ],
+      "name": "clearfin/auth-service",
+      "repositoryPolicy": {
+        "allowPullRoles": [
+          "clearfin-prod-auth-service-execution",
+        ],
+        "allowPushRoles": [
+          "clearfin-prod-cicd-pipeline",
+        ],
+      },
+      "scanOnPush": true,
+      "tags": {
+        "Component": "container-registry",
+        "Environment": "prod",
+        "Project": "ClearFin",
+        "Service": "auth-service",
+      },
+    },
+    {
+      "encryptionType": "KMS",
+      "imageTagMutability": "IMMUTABLE",
+      "kmsKeyAlias": "clearfin-prod-ecr-key",
+      "lifecycleRules": [
+        {
+          "action": "expire",
+          "countNumber": 10,
+          "countType": "imageCountMoreThan",
+          "description": "Retain last 10 tagged images",
+          "tagStatus": "tagged",
+        },
+        {
+          "action": "expire",
+          "countNumber": 7,
+          "countType": "sinceImagePushed",
+          "countUnit": "days",
+          "description": "Expire untagged images after 7 days",
+          "tagStatus": "untagged",
+        },
+      ],
+      "name": "clearfin/sts-broker",
+      "repositoryPolicy": {
+        "allowPullRoles": [
+          "clearfin-prod-sts-broker-execution",
+        ],
+        "allowPushRoles": [
+          "clearfin-prod-cicd-pipeline",
+        ],
+      },
+      "scanOnPush": true,
+      "tags": {
+        "Component": "container-registry",
+        "Environment": "prod",
+        "Project": "ClearFin",
+        "Service": "sts-broker",
+      },
+    },
+    {
+      "encryptionType": "KMS",
+      "imageTagMutability": "IMMUTABLE",
+      "kmsKeyAlias": "clearfin-prod-ecr-key",
+      "lifecycleRules": [
+        {
+          "action": "expire",
+          "countNumber": 10,
+          "countType": "imageCountMoreThan",
+          "description": "Retain last 10 tagged images",
+          "tagStatus": "tagged",
+        },
+        {
+          "action": "expire",
+          "countNumber": 7,
+          "countType": "sinceImagePushed",
+          "countUnit": "days",
+          "description": "Expire untagged images after 7 days",
+          "tagStatus": "untagged",
+        },
+      ],
+      "name": "clearfin/secrets-hierarchy-manager",
+      "repositoryPolicy": {
+        "allowPullRoles": [
+          "clearfin-prod-secrets-hierarchy-manager-execution",
+        ],
+        "allowPushRoles": [
+          "clearfin-prod-cicd-pipeline",
+        ],
+      },
+      "scanOnPush": true,
+      "tags": {
+        "Component": "container-registry",
+        "Environment": "prod",
+        "Project": "ClearFin",
+        "Service": "secrets-hierarchy-manager",
+      },
+    },
+  ],
+  "ecsClusterConfig": {
+    "containerInsights": true,
+    "name": "clearfin-prod-cluster",
+    "services": [
+      {
+        "assignPublicIp": false,
+        "desiredCount": 2,
+        "name": "clearfin-auth-service",
+        "subnetType": "private",
+        "taskDefinition": {
+          "containerPort": 3000,
+          "cpu": 256,
+          "ecrRepository": "clearfin/auth-service",
+          "environment": {
+            "NODE_ENV": "prod",
+            "SERVICE_NAME": "auth-service",
+          },
+          "executionRoleName": "clearfin-prod-auth-service-execution",
+          "family": "clearfin-prod-auth-service",
+          "healthCheckPath": "/health",
+          "memory": 512,
+          "taskRoleName": "clearfin-prod-auth-service-task",
+          "user": "1000:1000",
+        },
+      },
+      {
+        "assignPublicIp": false,
+        "desiredCount": 2,
+        "name": "clearfin-sts-broker",
+        "subnetType": "private",
+        "taskDefinition": {
+          "containerPort": 3001,
+          "cpu": 256,
+          "ecrRepository": "clearfin/sts-broker",
+          "environment": {
+            "NODE_ENV": "prod",
+            "SERVICE_NAME": "sts-broker",
+          },
+          "executionRoleName": "clearfin-prod-sts-broker-execution",
+          "family": "clearfin-prod-sts-broker",
+          "healthCheckPath": "/health",
+          "memory": 512,
+          "taskRoleName": "clearfin-prod-sts-broker-task",
+          "user": "1000:1000",
+        },
+      },
+      {
+        "assignPublicIp": false,
+        "desiredCount": 2,
+        "name": "clearfin-secrets-hierarchy-manager",
+        "subnetType": "private",
+        "taskDefinition": {
+          "containerPort": 3002,
+          "cpu": 256,
+          "ecrRepository": "clearfin/secrets-hierarchy-manager",
+          "environment": {
+            "NODE_ENV": "prod",
+            "SERVICE_NAME": "secrets-hierarchy-manager",
+          },
+          "executionRoleName": "clearfin-prod-secrets-hierarchy-manager-execution",
+          "family": "clearfin-prod-secrets-hierarchy-manager",
+          "healthCheckPath": "/health",
+          "memory": 512,
+          "taskRoleName": "clearfin-prod-secrets-hierarchy-manager-task",
+          "user": "1000:1000",
+        },
+      },
+    ],
+    "tags": {
+      "Component": "compute",
+      "Environment": "prod",
+      "Project": "ClearFin",
+    },
+  },
+  "stackName": "clearfin-prod-compute",
+  "tags": {
+    "Component": "compute",
+    "Environment": "prod",
+    "Project": "ClearFin",
+  },
+}
+`;
+
+exports[`ClearFinNetworkingStack > snapshot: full synthesized configuration 1`] = `
+{
+  "stackName": "clearfin-prod-networking",
+  "tags": {
+    "Component": "networking",
+    "Environment": "prod",
+    "Project": "ClearFin",
+  },
+  "vpcConfig": {
+    "cidrBlock": "10.0.0.0/16",
+    "enableDnsHostnames": true,
+    "enableDnsSupport": true,
+    "name": "clearfin-prod-vpc",
+    "natGateways": [
+      {
+        "elasticIpAllocation": true,
+        "name": "clearfin-prod-nat-il-central-1a",
+        "subnetName": "clearfin-prod-public-il-central-1a",
+      },
+      {
+        "elasticIpAllocation": true,
+        "name": "clearfin-prod-nat-il-central-1b",
+        "subnetName": "clearfin-prod-public-il-central-1b",
+      },
+    ],
+    "subnets": [
+      {
+        "availabilityZone": "il-central-1a",
+        "cidrBlock": "10.0.0.0/24",
+        "mapPublicIpOnLaunch": true,
+        "name": "clearfin-prod-public-il-central-1a",
+        "type": "public",
+      },
+      {
+        "availabilityZone": "il-central-1b",
+        "cidrBlock": "10.0.1.0/24",
+        "mapPublicIpOnLaunch": true,
+        "name": "clearfin-prod-public-il-central-1b",
+        "type": "public",
+      },
+      {
+        "availabilityZone": "il-central-1a",
+        "cidrBlock": "10.0.10.0/24",
+        "mapPublicIpOnLaunch": false,
+        "name": "clearfin-prod-private-il-central-1a",
+        "type": "private",
+      },
+      {
+        "availabilityZone": "il-central-1b",
+        "cidrBlock": "10.0.11.0/24",
+        "mapPublicIpOnLaunch": false,
+        "name": "clearfin-prod-private-il-central-1b",
+        "type": "private",
+      },
+    ],
+    "tags": {
+      "Component": "networking",
+      "Environment": "prod",
+      "Project": "ClearFin",
+    },
+    "vpcEndpoints": [
+      {
+        "name": "clearfin-prod-vpce-ecr-api",
+        "privateDnsEnabled": true,
+        "service": "com.amazonaws.il-central-1.ecr.api",
+        "subnetType": "private",
+        "type": "Interface",
+      },
+      {
+        "name": "clearfin-prod-vpce-ecr-dkr",
+        "privateDnsEnabled": true,
+        "service": "com.amazonaws.il-central-1.ecr.dkr",
+        "subnetType": "private",
+        "type": "Interface",
+      },
+      {
+        "name": "clearfin-prod-vpce-sts",
+        "privateDnsEnabled": true,
+        "service": "com.amazonaws.il-central-1.sts",
+        "subnetType": "private",
+        "type": "Interface",
+      },
+      {
+        "name": "clearfin-prod-vpce-secretsmanager",
+        "privateDnsEnabled": true,
+        "service": "com.amazonaws.il-central-1.secretsmanager",
+        "subnetType": "private",
+        "type": "Interface",
+      },
+      {
+        "name": "clearfin-prod-vpce-kms",
+        "privateDnsEnabled": true,
+        "service": "com.amazonaws.il-central-1.kms",
+        "subnetType": "private",
+        "type": "Interface",
+      },
+      {
+        "name": "clearfin-prod-vpce-logs",
+        "privateDnsEnabled": true,
+        "service": "com.amazonaws.il-central-1.logs",
+        "subnetType": "private",
+        "type": "Interface",
+      },
+      {
+        "name": "clearfin-prod-vpce-monitoring",
+        "privateDnsEnabled": true,
+        "service": "com.amazonaws.il-central-1.monitoring",
+        "subnetType": "private",
+        "type": "Interface",
+      },
+      {
+        "name": "clearfin-prod-vpce-s3",
+        "privateDnsEnabled": false,
+        "service": "com.amazonaws.il-central-1.s3",
+        "subnetType": "all",
+        "type": "Gateway",
+      },
+    ],
+  },
+}
+`;
+
+exports[`ClearFinSecurityStack > snapshot: full synthesized configuration 1`] = `
+{
+  "cloudTrailConfig": {
+    "alertRules": [
+      {
+        "description": "Alert on IAM policy modifications",
+        "eventPattern": {
+          "detail": {
+            "eventName": [
+              "PutRolePolicy",
+              "AttachRolePolicy",
+              "DetachRolePolicy",
+              "DeleteRolePolicy",
+              "UpdateAssumeRolePolicy",
+            ],
+            "eventSource": [
+              "iam.amazonaws.com",
+            ],
+          },
+          "detailType": [
+            "AWS API Call via CloudTrail",
+          ],
+          "source": [
+            "aws.iam",
+          ],
+        },
+        "name": "clearfin-prod-iam-policy-change",
+        "targetSnsTopicName": "clearfin-prod-security-alerts",
+      },
+      {
+        "description": "Alert on STS trust relationship modifications",
+        "eventPattern": {
+          "detail": {
+            "eventSource": [
+              "sts.amazonaws.com",
+            ],
+          },
+          "detailType": [
+            "AWS API Call via CloudTrail",
+          ],
+          "source": [
+            "aws.sts",
+          ],
+        },
+        "name": "clearfin-prod-sts-trust-change",
+        "targetSnsTopicName": "clearfin-prod-security-alerts",
+      },
+      {
+        "description": "Alert on Secrets Manager resource policy modifications",
+        "eventPattern": {
+          "detail": {
+            "eventName": [
+              "PutResourcePolicy",
+              "DeleteResourcePolicy",
+            ],
+            "eventSource": [
+              "secretsmanager.amazonaws.com",
+            ],
+          },
+          "detailType": [
+            "AWS API Call via CloudTrail",
+          ],
+          "source": [
+            "aws.secretsmanager",
+          ],
+        },
+        "name": "clearfin-prod-secrets-policy-change",
+        "targetSnsTopicName": "clearfin-prod-security-alerts",
+      },
+    ],
+    "enableLogFileValidation": true,
+    "eventSelectors": [
+      {
+        "dataResources": [
+          {
+            "type": "AWS::SecretsManager::Secret",
+            "values": [
+              "arn:aws:secretsmanager:il-central-1:123456789012:secret:/clearfin/prod/*",
+            ],
+          },
+        ],
+        "includeManagementEvents": true,
+        "readWriteType": "All",
+      },
+    ],
+    "insightSelectors": [
+      {
+        "insightType": "ApiCallRateInsight",
+      },
+      {
+        "insightType": "ApiErrorRateInsight",
+      },
+    ],
+    "isMultiRegion": false,
+    "kmsKeyAlias": "clearfin-prod-secrets-key",
+    "monitoredApiCalls": [
+      "iam:PutRolePolicy",
+      "iam:AttachRolePolicy",
+      "iam:DetachRolePolicy",
+      "iam:DeleteRolePolicy",
+      "iam:UpdateAssumeRolePolicy",
+      "sts:AssumeRole",
+      "secretsmanager:PutResourcePolicy",
+      "secretsmanager:DeleteResourcePolicy",
+      "secretsmanager:CreateSecret",
+      "secretsmanager:DeleteSecret",
+      "secretsmanager:UpdateSecret",
+    ],
+    "name": "clearfin-prod-audit-trail",
+    "s3BucketName": "clearfin-prod-cloudtrail-logs",
+    "s3KeyPrefix": "clearfin/prod",
+    "tags": {
+      "Component": "audit",
+      "Environment": "prod",
+      "Project": "ClearFin",
+    },
+  },
+  "iamConfig": {
+    "kmsKeys": [
+      {
+        "alias": "clearfin-prod-secrets-key",
+        "description": "ClearFin prod encryption key for Secrets Manager and session data",
+        "enableKeyRotation": true,
+        "keySpec": "SYMMETRIC_DEFAULT",
+        "keyUsage": "ENCRYPT_DECRYPT",
+        "policy": {
+          "allowAdminArns": [
+            "arn:aws:iam::123456789012:role/clearfin-prod-admin",
+          ],
+          "allowUsageArns": [
+            "arn:aws:iam::123456789012:role/clearfin-prod-auth-service-task",
+            "arn:aws:iam::123456789012:role/clearfin-prod-sts-broker-task",
+            "arn:aws:iam::123456789012:role/clearfin-prod-secrets-hierarchy-manager-task",
+          ],
+        },
+        "tags": {
+          "Component": "encryption",
+          "Environment": "prod",
+          "Project": "ClearFin",
+        },
+      },
+    ],
+    "roles": [
+      {
+        "description": "ECS task execution role for auth-service — pulls images from ECR",
+        "inlinePolicies": [
+          {
+            "name": "ecr-pull",
+            "statements": [
+              {
+                "Action": [
+                  "ecr:GetDownloadUrlForLayer",
+                  "ecr:BatchGetImage",
+                  "ecr:GetAuthorizationToken",
+                ],
+                "Effect": "Allow",
+                "Resource": [
+                  "arn:aws:ecr:il-central-1:123456789012:repository/clearfin/auth-service",
+                ],
+              },
+            ],
+          },
+        ],
+        "managedPolicies": [
+          "arn:aws:iam::aws:policy/service-role/AmazonECSTaskExecutionRolePolicy",
+        ],
+        "name": "clearfin-prod-auth-service-execution",
+        "tags": {
+          "Component": "iam",
+          "Environment": "prod",
+          "Project": "ClearFin",
+          "Service": "auth-service",
+        },
+        "trustPolicy": {
+          "Statement": [
+            {
+              "Action": "sts:AssumeRole",
+              "Effect": "Allow",
+              "Principal": {
+                "Service": "ecs-tasks.amazonaws.com",
+              },
+            },
+          ],
+          "Version": "2012-10-17",
+        },
+      },
+      {
+        "description": "ECS task execution role for sts-broker — pulls images from ECR",
+        "inlinePolicies": [
+          {
+            "name": "ecr-pull",
+            "statements": [
+              {
+                "Action": [
+                  "ecr:GetDownloadUrlForLayer",
+                  "ecr:BatchGetImage",
+                  "ecr:GetAuthorizationToken",
+                ],
+                "Effect": "Allow",
+                "Resource": [
+                  "arn:aws:ecr:il-central-1:123456789012:repository/clearfin/sts-broker",
+                ],
+              },
+            ],
+          },
+        ],
+        "managedPolicies": [
+          "arn:aws:iam::aws:policy/service-role/AmazonECSTaskExecutionRolePolicy",
+        ],
+        "name": "clearfin-prod-sts-broker-execution",
+        "tags": {
+          "Component": "iam",
+          "Environment": "prod",
+          "Project": "ClearFin",
+          "Service": "sts-broker",
+        },
+        "trustPolicy": {
+          "Statement": [
+            {
+              "Action": "sts:AssumeRole",
+              "Effect": "Allow",
+              "Principal": {
+                "Service": "ecs-tasks.amazonaws.com",
+              },
+            },
+          ],
+          "Version": "2012-10-17",
+        },
+      },
+      {
+        "description": "ECS task execution role for secrets-hierarchy-manager — pulls images from ECR",
+        "inlinePolicies": [
+          {
+            "name": "ecr-pull",
+            "statements": [
+              {
+                "Action": [
+                  "ecr:GetDownloadUrlForLayer",
+                  "ecr:BatchGetImage",
+                  "ecr:GetAuthorizationToken",
+                ],
+                "Effect": "Allow",
+                "Resource": [
+                  "arn:aws:ecr:il-central-1:123456789012:repository/clearfin/secrets-hierarchy-manager",
+                ],
+              },
+            ],
+          },
+        ],
+        "managedPolicies": [
+          "arn:aws:iam::aws:policy/service-role/AmazonECSTaskExecutionRolePolicy",
+        ],
+        "name": "clearfin-prod-secrets-hierarchy-manager-execution",
+        "tags": {
+          "Component": "iam",
+          "Environment": "prod",
+          "Project": "ClearFin",
+          "Service": "secrets-hierarchy-manager",
+        },
+        "trustPolicy": {
+          "Statement": [
+            {
+              "Action": "sts:AssumeRole",
+              "Effect": "Allow",
+              "Principal": {
+                "Service": "ecs-tasks.amazonaws.com",
+              },
+            },
+          ],
+          "Version": "2012-10-17",
+        },
+      },
+      {
+        "description": "ECS task role for auth-service — runtime permissions",
+        "inlinePolicies": [
+          {
+            "name": "kms-decrypt",
+            "statements": [
+              {
+                "Action": [
+                  "kms:Decrypt",
+                  "kms:GenerateDataKey",
+                ],
+                "Effect": "Allow",
+                "Resource": [
+                  "arn:aws:kms:il-central-1:123456789012:alias/clearfin-prod-secrets-key",
+                ],
+              },
+            ],
+          },
+        ],
+        "managedPolicies": [],
+        "name": "clearfin-prod-auth-service-task",
+        "tags": {
+          "Component": "iam",
+          "Environment": "prod",
+          "Project": "ClearFin",
+          "Service": "auth-service",
+        },
+        "trustPolicy": {
+          "Statement": [
+            {
+              "Action": "sts:AssumeRole",
+              "Effect": "Allow",
+              "Principal": {
+                "Service": "ecs-tasks.amazonaws.com",
+              },
+            },
+          ],
+          "Version": "2012-10-17",
+        },
+      },
+      {
+        "description": "ECS task role for sts-broker — runtime permissions",
+        "inlinePolicies": [
+          {
+            "name": "kms-decrypt",
+            "statements": [
+              {
+                "Action": [
+                  "kms:Decrypt",
+                  "kms:GenerateDataKey",
+                ],
+                "Effect": "Allow",
+                "Resource": [
+                  "arn:aws:kms:il-central-1:123456789012:alias/clearfin-prod-secrets-key",
+                ],
+              },
+            ],
+          },
+        ],
+        "managedPolicies": [],
+        "name": "clearfin-prod-sts-broker-task",
+        "tags": {
+          "Component": "iam",
+          "Environment": "prod",
+          "Project": "ClearFin",
+          "Service": "sts-broker",
+        },
+        "trustPolicy": {
+          "Statement": [
+            {
+              "Action": "sts:AssumeRole",
+              "Effect": "Allow",
+              "Principal": {
+                "Service": "ecs-tasks.amazonaws.com",
+              },
+            },
+          ],
+          "Version": "2012-10-17",
+        },
+      },
+      {
+        "description": "ECS task role for secrets-hierarchy-manager — runtime permissions",
+        "inlinePolicies": [
+          {
+            "name": "kms-decrypt",
+            "statements": [
+              {
+                "Action": [
+                  "kms:Decrypt",
+                  "kms:GenerateDataKey",
+                ],
+                "Effect": "Allow",
+                "Resource": [
+                  "arn:aws:kms:il-central-1:123456789012:alias/clearfin-prod-secrets-key",
+                ],
+              },
+            ],
+          },
+        ],
+        "managedPolicies": [],
+        "name": "clearfin-prod-secrets-hierarchy-manager-task",
+        "tags": {
+          "Component": "iam",
+          "Environment": "prod",
+          "Project": "ClearFin",
+          "Service": "secrets-hierarchy-manager",
+        },
+        "trustPolicy": {
+          "Statement": [
+            {
+              "Action": "sts:AssumeRole",
+              "Effect": "Allow",
+              "Principal": {
+                "Service": "ecs-tasks.amazonaws.com",
+              },
+            },
+          ],
+          "Version": "2012-10-17",
+        },
+      },
+      {
+        "description": "Base role assumed by STS_Broker for JIT credential issuance",
+        "inlinePolicies": [
+          {
+            "name": "secrets-access",
+            "statements": [
+              {
+                "Action": [
+                  "secretsmanager:GetSecretValue",
+                  "secretsmanager:DescribeSecret",
+                ],
+                "Effect": "Allow",
+                "Resource": [
+                  "arn:aws:secretsmanager:il-central-1:123456789012:secret:/clearfin/prod/*",
+                ],
+              },
+            ],
+          },
+        ],
+        "managedPolicies": [],
+        "name": "clearfin-prod-sts-base-role",
+        "tags": {
+          "Component": "iam",
+          "Environment": "prod",
+          "Project": "ClearFin",
+          "Service": "sts-base",
+        },
+        "trustPolicy": {
+          "Statement": [
+            {
+              "Action": "sts:AssumeRole",
+              "Effect": "Allow",
+              "Principal": {
+                "AWS": "arn:aws:iam::123456789012:role/clearfin-prod-sts-broker-task",
+              },
+            },
+          ],
+          "Version": "2012-10-17",
+        },
+      },
+    ],
+  },
+  "stackName": "clearfin-prod-security",
+  "tags": {
+    "Component": "security",
+    "Environment": "prod",
+    "Project": "ClearFin",
+  },
+}
+`;
+
+exports[`ClearFinStaticHostingStack > snapshot: full synthesized configuration 1`] = `
+{
+  "cloudFrontConfig": {
+    "distribution": {
+      "defaultRootObject": "index.html",
+      "enabled": true,
+      "errorResponses": [
+        {
+          "httpStatus": 403,
+          "responseHttpStatus": 200,
+          "responsePagePath": "/index.html",
+          "ttlSeconds": 300,
+        },
+        {
+          "httpStatus": 404,
+          "responseHttpStatus": 200,
+          "responsePagePath": "/index.html",
+          "ttlSeconds": 300,
+        },
+      ],
+      "httpVersion": "http2and3",
+      "name": "clearfin-prod-login-distribution",
+      "originAccessControl": {
+        "name": "clearfin-prod-login-oac",
+        "originType": "s3",
+        "signingBehavior": "always",
+        "signingProtocol": "sigv4",
+      },
+      "priceClass": "PriceClass_100",
+      "responseHeadersPolicy": {
+        "name": "clearfin-prod-login-headers",
+        "securityHeaders": {
+          "contentSecurityPolicy": "default-src 'self'; script-src 'https://clearfin.example.com'; style-src 'https://clearfin.example.com' 'unsafe-inline'; img-src 'https://clearfin.example.com' data:; connect-src 'https://clearfin.example.com'; frame-ancestors 'none'",
+          "contentTypeOptions": true,
+          "frameOptions": "DENY",
+          "referrerPolicy": "strict-origin-when-cross-origin",
+          "strictTransportSecurity": "max-age=31536000; includeSubDomains",
+          "xssProtection": true,
+        },
+      },
+      "s3Origin": {
+        "bucketName": "clearfin-prod-login-page",
+      },
+      "tags": {
+        "Component": "cdn",
+        "Environment": "prod",
+        "Project": "ClearFin",
+      },
+      "viewerProtocolPolicy": "redirect-to-https",
+    },
+    "s3Bucket": {
+      "blockPublicAccess": {
+        "blockPublicAcls": true,
+        "blockPublicPolicy": true,
+        "ignorePublicAcls": true,
+        "restrictPublicBuckets": true,
+      },
+      "encryption": {
+        "type": "AES256",
+      },
+      "name": "clearfin-prod-login-page",
+      "tags": {
+        "Component": "login-page",
+        "Environment": "prod",
+        "Project": "ClearFin",
+      },
+      "versioning": true,
+    },
+  },
+  "stackName": "clearfin-prod-static-hosting",
+  "tags": {
+    "Component": "static-hosting",
+    "Environment": "prod",
+    "Project": "ClearFin",
+  },
+}
+`;

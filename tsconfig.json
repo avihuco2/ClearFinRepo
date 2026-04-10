@@ -1,0 +1,26 @@
+{
+  "compilerOptions": {
+    "target": "ES2022",
+    "module": "Node16",
+    "moduleResolution": "Node16",
+    "lib": ["ES2022"],
+    "strict": true,
+    "esModuleInterop": true,
+    "skipLibCheck": true,
+    "forceConsistentCasingInFileNames": true,
+    "resolveJsonModule": true,
+    "declaration": true,
+    "declarationMap": true,
+    "sourceMap": true
+  },
+  "include": [],
+  "references": [
+    { "path": "packages/shared" },
+    { "path": "packages/auth-service" },
+    { "path": "packages/sts-broker" },
+    { "path": "packages/secrets-hierarchy-manager" },
+    { "path": "packages/sentinel-gate" },
+    { "path": "packages/login-page" },
+    { "path": "packages/infra" }
+  ]
+}

@@ -1,0 +1,67 @@
+# ClearFin Secure Foundation — CDK Bootstrap
+# Validates: Requirements 8.1, 9.1, 9.2
+
+name: ClearFin CDK Bootstrap
+
+on:
+  workflow_dispatch:
+    inputs:
+      environment:
+        description: "Target environment to bootstrap"
+        required: true
+        type: choice
+        options:
+          - dev
+          - staging
+          - prod
+
+permissions: {}
+
+env:
+  NODE_VERSION: "22"
+
+jobs:
+  bootstrap:
+    runs-on: ubuntu-latest
+    environment: ${{ inputs.environment }}
+    permissions:
+      contents: read
+      id-token: write
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@11bd71901bbe5b1630ceea73d27597364c9af683 # v4
+
+      - name: Setup Node.js
+        uses: actions/setup-node@39370e3970a6d050c480ffad4ff0ed4d3fdee5af # v4
+        with:
+          node-version: ${{ env.NODE_VERSION }}
+
+      - name: Cache node_modules
+        uses: actions/cache@6849a6489940f00c2f30c0fb92c6274307ccb58a # v4
+        with:
+          path: node_modules
+          key: node-modules-${{ runner.os }}-${{ hashFiles('package-lock.json') }}
+          restore-keys: |
+            node-modules-${{ runner.os }}-
+
+      - name: Install dependencies
+        run: npm ci
+
+      - name: Build
+        run: npm run build
+
+      - name: Configure AWS credentials (OIDC)
+        uses: aws-actions/configure-aws-credentials@e3dd6a429d7300a6a4c196c26e071d42e0343502 # v4
+        with:
+          role-to-assume: ${{ vars.AWS_ROLE_ARN }}
+          aws-region: ${{ vars.AWS_REGION }}
+
+      - name: CDK bootstrap
+        run: |
+          npx cdk bootstrap \
+            "aws://${{ vars.AWS_ACCOUNT_ID }}/${{ vars.AWS_REGION }}" \
+            --qualifier clearfin \
+            --toolkit-stack-name ClearFinCDKToolkit \
+            --tags Project=ClearFin \
+            --tags Environment=${{ inputs.environment }}
+        working-directory: packages/infra
