@@ -166,7 +166,7 @@ function buildS3SyncPolicy(env: string): {
   name: string;
   statements: PolicyStatement[];
 } {
-  const bucket = `clearfin-${env}-login-page`;
+  const bucket = `clearfin-${env}-login-page-assets`;
   return {
     name: 's3-sync',
     statements: [

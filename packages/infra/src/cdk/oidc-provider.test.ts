@@ -123,7 +123,7 @@ describe('ClearFinOidcProvider', () => {
       expect(cfnStatement.Resource[0]).toContain('stack/clearfin-*');
     });
 
-    it('S3 sync policy scopes to clearfin-{env}-login-page bucket', () => {
+    it('S3 sync policy scopes to clearfin-{env}-login-page-assets bucket', () => {
       const provider = new ClearFinOidcProvider(DEFAULT_PROPS);
       const dev = provider.roleConfigs.find((r) => r.environment === 'dev')!;
       const s3Policy = dev.inlinePolicies.find((p) => p.name === 's3-sync')!;
@@ -131,7 +131,7 @@ describe('ClearFinOidcProvider', () => {
         s.Action.includes('s3:PutObject'),
       )!;
       expect(putStatement.Resource[0]).toBe(
-        'arn:aws:s3:::clearfin-dev-login-page/*',
+        'arn:aws:s3:::clearfin-dev-login-page-assets/*',
       );
     });
 
