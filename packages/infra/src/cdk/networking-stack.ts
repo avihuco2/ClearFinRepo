@@ -96,10 +96,20 @@ export class NetworkingCdkStack extends cdk.Stack {
       }
     });
 
+    // Create Internet Gateway explicitly since VPC was created with no subnets
+    const igw = new ec2.CfnInternetGateway(this, 'InternetGateway', {
+      tags: [{ key: 'Name', value: `${vpcConfig.name}-igw` }],
+    });
+
+    new ec2.CfnVPCGatewayAttachment(this, 'VpcIgwAttachment', {
+      vpcId: this.vpc.vpcId,
+      internetGatewayId: igw.ref,
+    });
+
     // Add internet gateway routes for public subnets
     for (const pubSubnet of this.publicSubnets) {
       pubSubnet.addRoute('DefaultIgwRoute', {
-        routerId: this.vpc.internetGatewayId!,
+        routerId: igw.ref,
         routerType: ec2.RouterType.GATEWAY,
         destinationCidrBlock: '0.0.0.0/0',
       });
