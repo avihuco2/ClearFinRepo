@@ -1,11 +1,11 @@
-# ClearFin Secure Foundation — CI/CD Pipeline
-# Validates: Requirements 1.1, 1.2, 2.1-2.6, 3.1-3.6, 4.1-4.6, 5.1-5.7, 6.1-6.4, 7.1-7.6, 8.4, 9.1-9.4
+# ClearFin Secure Foundation — CI/CD Pipeline (Prod-only)
+# Deploys directly to prod on push to main — no dev/staging environments
 
 name: ClearFin Deploy
 
 on:
   push:
-    branches: [main, develop]
+    branches: [main]
   pull_request:
     branches: [main]
 
@@ -15,7 +15,6 @@ concurrency:
 
 env:
   NODE_VERSION: "22"
-  IMAGE_TAG: "" # Set dynamically per job from short git SHA
 
 jobs:
   # ─── CI Stage ─────────────────────────────────────────────────────
@@ -171,216 +170,10 @@ jobs:
           path: packages/infra/cdk.out
           retention-days: 90
 
-  # ─── Deploy to Dev ─────────────────────────────────────────────────
-  deploy-dev:
-    runs-on: ubuntu-latest
-    needs: [docker-build-push, cdk-synth]
-    if: github.ref == 'refs/heads/develop'
-    environment: dev
-    permissions:
-      contents: read
-      id-token: write
-    steps:
-      - name: Checkout repository
-        uses: actions/checkout@11bd71901bbe5b1630ceea73d27597364c9af683 # v4
-
-      - name: Setup Node.js
-        uses: actions/setup-node@39370e3970a6d050c480ffad4ff0ed4d3fdee5af # v4
-        with:
-          node-version: ${{ env.NODE_VERSION }}
-
-      - name: Configure AWS credentials (OIDC)
-        uses: aws-actions/configure-aws-credentials@e3dd6a429d7300a6a4c196c26e071d42e0343502 # v4
-        with:
-          role-to-assume: ${{ vars.AWS_ROLE_ARN }}
-          aws-region: ${{ vars.AWS_REGION }}
-          role-duration-seconds: 3600
-
-      - name: Download cdk.out artifact
-        uses: actions/download-artifact@fa0a91b85d4f404e444e00e005971372dc801d16 # v4
-        with:
-          name: cdk-out
-          path: packages/infra/cdk.out
-
-      - name: Cache node_modules
-        uses: actions/cache@0057852bfaa89a56745cba8c7296529d2fc39830 # v4
-        with:
-          path: node_modules
-          key: node-modules-${{ runner.os }}-${{ hashFiles('package-lock.json') }}
-          restore-keys: |
-            node-modules-${{ runner.os }}-
-
-      - name: Install dependencies
-        run: npm ci
-
-      - name: Build
-        run: npm run build
-
-      - name: CDK diff
-        run: |
-          npx cdk diff \
-            clearfin-dev-networking \
-            clearfin-dev-security \
-            clearfin-dev-compute \
-            clearfin-dev-static-hosting \
-            --context environment=dev \
-            --context accountId=${{ vars.AWS_ACCOUNT_ID }} \
-            --context region=${{ vars.AWS_REGION }} \
-            --context imageTag=${GITHUB_SHA:0:7} \
-            --context domainName=${{ vars.DOMAIN_NAME }} \
-            --context certificateArn=${{ vars.CERTIFICATE_ARN }}
-        working-directory: packages/infra
-
-      - name: CDK deploy
-        run: |
-          npx cdk deploy \
-            clearfin-dev-networking \
-            clearfin-dev-security \
-            clearfin-dev-compute \
-            clearfin-dev-static-hosting \
-            --require-approval never \
-            --concurrency 4 \
-            --context environment=dev \
-            --context accountId=${{ vars.AWS_ACCOUNT_ID }} \
-            --context region=${{ vars.AWS_REGION }} \
-            --context imageTag=${GITHUB_SHA:0:7} \
-            --context domainName=${{ vars.DOMAIN_NAME }} \
-            --context certificateArn=${{ vars.CERTIFICATE_ARN }}
-        working-directory: packages/infra
-
-      - name: Build login page
-        run: npm run build --workspace=packages/login-page && npm run build:html --workspace=packages/login-page
-
-      - name: Sync login page to S3
-        run: |
-          aws s3 sync packages/login-page/dist/ s3://clearfin-dev-login-page-assets/ \
-            --delete \
-            --cache-control "max-age=31536000, immutable" \
-            --exclude "index.html"
-
-          aws s3 cp packages/login-page/dist/index.html s3://clearfin-dev-login-page-assets/index.html \
-            --cache-control "no-cache"
-
-      - name: Invalidate CloudFront cache
-        run: |
-          DIST_ID=$(aws cloudfront list-distributions \
-            --query "DistributionList.Items[?Comment=='clearfin-dev-login-page'].Id" \
-            --output text)
-          if [ -n "${DIST_ID}" ] && [ "${DIST_ID}" != "None" ]; then
-            aws cloudfront create-invalidation \
-              --distribution-id "${DIST_ID}" \
-              --paths "/*"
-          else
-            echo "No CloudFront distribution found — skipping invalidation"
-          fi
-
-  # ─── Deploy to Staging ──────────────────────────────────────────────
-  deploy-staging:
-    runs-on: ubuntu-latest
-    needs: [docker-build-push, cdk-synth]
-    if: github.ref == 'refs/heads/main'
-    environment: staging
-    permissions:
-      contents: read
-      id-token: write
-    steps:
-      - name: Checkout repository
-        uses: actions/checkout@11bd71901bbe5b1630ceea73d27597364c9af683 # v4
-
-      - name: Setup Node.js
-        uses: actions/setup-node@39370e3970a6d050c480ffad4ff0ed4d3fdee5af # v4
-        with:
-          node-version: ${{ env.NODE_VERSION }}
-
-      - name: Configure AWS credentials (OIDC)
-        uses: aws-actions/configure-aws-credentials@e3dd6a429d7300a6a4c196c26e071d42e0343502 # v4
-        with:
-          role-to-assume: ${{ vars.AWS_ROLE_ARN }}
-          aws-region: ${{ vars.AWS_REGION }}
-          role-duration-seconds: 3600
-
-      - name: Download cdk.out artifact
-        uses: actions/download-artifact@fa0a91b85d4f404e444e00e005971372dc801d16 # v4
-        with:
-          name: cdk-out
-          path: packages/infra/cdk.out
-
-      - name: Cache node_modules
-        uses: actions/cache@0057852bfaa89a56745cba8c7296529d2fc39830 # v4
-        with:
-          path: node_modules
-          key: node-modules-${{ runner.os }}-${{ hashFiles('package-lock.json') }}
-          restore-keys: |
-            node-modules-${{ runner.os }}-
-
-      - name: Install dependencies
-        run: npm ci
-
-      - name: Build
-        run: npm run build
-
-      - name: CDK diff
-        run: |
-          npx cdk diff \
-            clearfin-staging-networking \
-            clearfin-staging-security \
-            clearfin-staging-compute \
-            clearfin-staging-static-hosting \
-            --context environment=staging \
-            --context accountId=${{ vars.AWS_ACCOUNT_ID }} \
-            --context region=${{ vars.AWS_REGION }} \
-            --context imageTag=${GITHUB_SHA:0:7} \
-            --context domainName=${{ vars.DOMAIN_NAME }} \
-            --context certificateArn=${{ vars.CERTIFICATE_ARN }}
-        working-directory: packages/infra
-
-      - name: CDK deploy
-        run: |
-          npx cdk deploy \
-            clearfin-staging-networking \
-            clearfin-staging-security \
-            clearfin-staging-compute \
-            clearfin-staging-static-hosting \
-            --require-approval never \
-            --concurrency 4 \
-            --context environment=staging \
-            --context accountId=${{ vars.AWS_ACCOUNT_ID }} \
-            --context region=${{ vars.AWS_REGION }} \
-            --context imageTag=${GITHUB_SHA:0:7} \
-            --context domainName=${{ vars.DOMAIN_NAME }} \
-            --context certificateArn=${{ vars.CERTIFICATE_ARN }}
-        working-directory: packages/infra
-
-      - name: Build login page
-        run: npm run build --workspace=packages/login-page && npm run build:html --workspace=packages/login-page
-
-      - name: Sync login page to S3
-        run: |
-          aws s3 sync packages/login-page/dist/ s3://clearfin-staging-login-page-assets/ \
-            --delete \
-            --cache-control "max-age=31536000, immutable" \
-            --exclude "index.html"
-
-          aws s3 cp packages/login-page/dist/index.html s3://clearfin-staging-login-page-assets/index.html \
-            --cache-control "no-cache"
-
-      - name: Invalidate CloudFront cache
-        run: |
-          DIST_ID=$(aws cloudfront list-distributions \
-            --query "DistributionList.Items[?Comment=='clearfin-staging-login-page'].Id" \
-            --output text)
-          if [ -n "${DIST_ID}" ] && [ "${DIST_ID}" != "None" ]; then
-            aws cloudfront create-invalidation \
-              --distribution-id "${DIST_ID}" \
-              --paths "/*"
-          else
-            echo "No CloudFront distribution found — skipping invalidation"
-          fi
-
-  # ─── Deploy to Prod ────────────────────────────────────────────────
+  # ─── Deploy to Prod (automatic, no approval) ──────────────────────
   deploy-prod:
     runs-on: ubuntu-latest
-    needs: deploy-staging
+    needs: [docker-build-push, cdk-synth]
     if: github.ref == 'refs/heads/main'
     environment: prod
     permissions:
@@ -483,7 +276,7 @@ jobs:
   # ─── Deployment Summary ─────────────────────────────────────────────
   summary:
     runs-on: ubuntu-latest
-    needs: [build-and-test, docker-build-push, cdk-synth, deploy-dev, deploy-staging, deploy-prod]
+    needs: [build-and-test, docker-build-push, cdk-synth, deploy-prod]
     if: always()
     permissions:
       contents: read
@@ -496,22 +289,9 @@ jobs:
           BUILD_RESULT: ${{ needs.build-and-test.result }}
           DOCKER_RESULT: ${{ needs.docker-build-push.result }}
           SYNTH_RESULT: ${{ needs.cdk-synth.result }}
-          DEV_RESULT: ${{ needs.deploy-dev.result }}
-          STAGING_RESULT: ${{ needs.deploy-staging.result }}
           PROD_RESULT: ${{ needs.deploy-prod.result }}
         run: |
           SHORT_SHA="${GIT_SHA:0:7}"
-          DURATION="${{ github.event.head_commit.timestamp || '' }}"
-
-          # Determine sentinel status
-          SENTINEL_STATUS="not-required"
-          if [ "${STAGING_RESULT}" = "success" ] || [ "${PROD_RESULT}" = "success" ]; then
-            SENTINEL_STATUS="approved"
-          elif [ "${STAGING_RESULT}" = "cancelled" ] || [ "${PROD_RESULT}" = "cancelled" ]; then
-            SENTINEL_STATUS="timeout"
-          elif [ "${STAGING_RESULT}" = "failure" ] || [ "${PROD_RESULT}" = "failure" ]; then
-            SENTINEL_STATUS="rejected"
-          fi
 
           cat >> "${GITHUB_STEP_SUMMARY}" <<EOF
           ## Deployment Summary
@@ -526,10 +306,10 @@ jobs:
           - clearfin/secrets-hierarchy-manager:\`${SHORT_SHA}\`
 
           ### CDK Stacks
-          - clearfin-{env}-networking
-          - clearfin-{env}-security
-          - clearfin-{env}-compute
-          - clearfin-{env}-static-hosting
+          - clearfin-prod-networking
+          - clearfin-prod-security
+          - clearfin-prod-compute
+          - clearfin-prod-static-hosting
 
           ### Job Results
           | Job | Status |
@@ -537,12 +317,7 @@ jobs:
           | build-and-test | ${BUILD_RESULT} |
           | docker-build-push | ${DOCKER_RESULT} |
           | cdk-synth | ${SYNTH_RESULT} |
-          | deploy-dev | ${DEV_RESULT} |
-          | deploy-staging | ${STAGING_RESULT} |
           | deploy-prod | ${PROD_RESULT} |
-
-          ### Sentinel Gate Status
-          **Status:** ${SENTINEL_STATUS}
 
           ### Duration
           **Workflow run:** [View details](${GITHUB_SERVER_URL}/${GITHUB_REPOSITORY}/actions/runs/${GITHUB_RUN_ID})

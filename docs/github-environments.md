@@ -1,104 +1,74 @@
 # GitHub Environment Configuration
 
-This document describes the GitHub Actions environment setup required for the ClearFin Secure Foundation CI/CD pipeline. The pipeline uses three environments (`dev`, `staging`, `prod`) with OIDC-based AWS authentication — no long-lived AWS credentials are stored in GitHub.
+This document describes the GitHub Actions environment setup required for the ClearFin Secure Foundation CI/CD pipeline. The pipeline deploys directly to `prod` on push to `main` — no dev or staging environments.
 
 ## Prerequisites
 
-Before configuring environments, ensure the following are in place:
+1. An AWS IAM OIDC identity provider for `token.actions.githubusercontent.com` exists in the prod AWS account.
+2. A prod IAM role with OIDC trust policy has been created (see [IAM Roles](#iam-roles) below).
+3. CDK has been bootstrapped in the prod account/region using the `ClearFin CDK Bootstrap` workflow (`.github/workflows/bootstrap.yml`).
 
-1. An AWS IAM OIDC identity provider for `token.actions.githubusercontent.com` exists in each target AWS account.
-2. Per-environment IAM roles with OIDC trust policies have been created (see [IAM Roles](#iam-roles) below).
-3. CDK has been bootstrapped in each account/region using the `ClearFin CDK Bootstrap` workflow (`.github/workflows/bootstrap.yml`).
-
-## Environments
-
-### `dev`
-
-- **Branch trigger:** `develop`
-- **Protection rules:** None (auto-deploy on push)
-- **Sentinel Gate:** Not required
-
-### `staging`
-
-- **Branch trigger:** `main`
-- **Protection rules:**
-  - Required reviewer: `clearfin_sentinel`
-  - Review timeout: 60 minutes (workflow cancelled on timeout)
-- **Sentinel Gate:** Required — deployment pauses until `clearfin_sentinel` approves
+## Environment
 
 ### `prod`
 
-- **Branch trigger:** `main` (runs after successful staging deployment)
-- **Protection rules:**
-  - Required reviewer: `clearfin_sentinel`
-  - Review timeout: 60 minutes (workflow cancelled on timeout)
-- **Sentinel Gate:** Required — separate approval from staging
+- **Branch trigger:** `main`
+- **Protection rules:** None (automatic deploy on push, no manual approval)
+- **Flow:** push to main → build → test → docker push → CDK synth → deploy prod
 
 ## Required Environment Variables
 
-Each environment must have the following variables configured in **Settings → Environments → [env] → Environment variables** (not secrets — these are non-sensitive configuration values consumed via `${{ vars.* }}`):
+The `prod` environment must have the following variables configured in **Settings → Environments → prod → Environment variables**:
 
 | Variable | Description | Example |
 |---|---|---|
-| `AWS_ACCOUNT_ID` | AWS account ID for the target environment | `123456789012` |
+| `AWS_ACCOUNT_ID` | AWS account ID for prod | `123456789012` |
 | `AWS_REGION` | AWS region for deployment | `il-central-1` |
-| `AWS_ROLE_ARN` | ARN of the OIDC-assumed IAM role | `arn:aws:iam::123456789012:role/clearfin-dev-github-actions-deploy` |
-| `DOMAIN_NAME` | Domain name for the environment | `dev.clearfin.example.com` |
+| `AWS_ROLE_ARN` | ARN of the OIDC-assumed IAM role | `arn:aws:iam::123456789012:role/clearfin-prod-github-actions-deploy` |
+| `DOMAIN_NAME` | Domain name for the environment | `clearfin.click` |
 | `CERTIFICATE_ARN` | ACM certificate ARN for TLS termination | `arn:aws:acm:il-central-1:123456789012:certificate/abc-123` |
 
-All five variables must be set for every environment. The pipeline will fail if any are missing.
+All five variables must be set. The pipeline will fail if any are missing.
 
 ## IAM Roles
 
-Each environment uses a dedicated IAM role assumed via OIDC. The trust policy restricts which branches can assume the role:
-
 | Environment | IAM Role Name | Allowed Branches |
 |---|---|---|
-| `dev` | `clearfin-dev-github-actions-deploy` | `main`, `develop` |
-| `staging` | `clearfin-staging-github-actions-deploy` | `main` |
 | `prod` | `clearfin-prod-github-actions-deploy` | `main` |
 
-Each role's trust policy uses a `StringLike` condition on `token.actions.githubusercontent.com:sub` scoped to the repository and branch pattern. See `packages/infra/src/cdk/oidc-provider.ts` for the CDK construct that provisions these roles.
+The role's trust policy uses a `StringLike` condition on `token.actions.githubusercontent.com:sub` scoped to the repository and `main` branch. See `packages/infra/src/cdk/oidc-provider.ts` for the CDK construct that provisions this role.
 
 ### Role Permissions (least-privilege)
 
 - **ECR:** `GetAuthorizationToken`, `BatchCheckLayerAvailability`, `PutImage`, `InitiateLayerUpload`, `UploadLayerPart`, `CompleteLayerUpload`, `DescribeImageScanFindings`
 - **CDK deploy:** `cloudformation:*` scoped to `clearfin-*` stacks, `sts:AssumeRole` for CDK execution roles, `ssm:GetParameter` for CDK bootstrap version
-- **S3:** `PutObject`, `DeleteObject`, `ListBucket` scoped to `clearfin-{env}-login-page`
-- **CloudFront:** `CreateInvalidation` scoped to the environment's distribution
+- **S3:** `PutObject`, `DeleteObject`, `ListBucket` scoped to `clearfin-prod-login-page`
+- **CloudFront:** `CreateInvalidation` scoped to the prod distribution
 
 ## Setup Steps
 
-### 1. Create GitHub Environments
+### 1. Create GitHub Environment
 
-In the repository, go to **Settings → Environments** and create three environments: `dev`, `staging`, `prod`.
+In the repository, go to **Settings → Environments** and ensure the `prod` environment exists. Remove any required reviewers or wait timers — deployments are fully automatic.
 
-### 2. Configure Protection Rules
+### 2. Remove dev and staging environments
 
-For `staging` and `prod`:
-1. Enable **Required reviewers**
-2. Add `clearfin_sentinel` as a required reviewer
-3. Set **Wait timer** to 0 (the 60-minute timeout is enforced by the reviewer response window)
-
-Leave `dev` with no protection rules.
+Delete the `dev` and `staging` environments from **Settings → Environments** if they exist.
 
 ### 3. Set Environment Variables
 
-For each environment, add the five variables listed above with the correct values for that environment's AWS account.
+Add the five variables listed above to the `prod` environment with the correct values.
 
 ### 4. Bootstrap CDK
 
-Run the `ClearFin CDK Bootstrap` workflow manually for each environment:
+Run the `ClearFin CDK Bootstrap` workflow manually for `prod`:
 1. Go to **Actions → ClearFin CDK Bootstrap**
 2. Click **Run workflow**
-3. Select the target environment (`dev`, `staging`, or `prod`)
-
-This provisions the CDKToolkit stack (S3 staging bucket, ECR repository, IAM roles) in the target account with the `clearfin` qualifier.
+3. Select `prod`
 
 ## Pipeline Flow Summary
 
 ```
-Push to develop → build → test → docker → cdk synth → deploy dev (auto)
-Push to main    → build → test → docker → cdk synth → deploy staging (sentinel) → deploy prod (sentinel)
-PR to main      → build → test (no deploy)
+Push to main → build → test → docker push → cdk synth → deploy prod (automatic)
+PR to main   → build → test (no deploy)
 ```

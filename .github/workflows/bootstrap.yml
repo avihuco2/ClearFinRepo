@@ -1,5 +1,4 @@
 # ClearFin Secure Foundation — CDK Bootstrap
-# Validates: Requirements 8.1, 9.1, 9.2
 
 name: ClearFin CDK Bootstrap
 
@@ -11,8 +10,6 @@ on:
         required: true
         type: choice
         options:
-          - dev
-          - staging
           - prod
 
 permissions: {}
