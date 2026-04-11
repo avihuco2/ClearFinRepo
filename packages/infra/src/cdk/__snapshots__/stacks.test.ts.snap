@@ -212,7 +212,13 @@ exports[`ClearFinComputeStack > snapshot: full synthesized configuration 1`] = `
           "cpu": 256,
           "ecrRepository": "clearfin/auth-service",
           "environment": {
+            "DASHBOARD_URL": "https://clearfin.click",
+            "EXPECTED_ISS": "https://accounts.google.com",
+            "GOOGLE_OAUTH_SECRET_NAME": "/clearfin/prod/_platform/google-oauth",
             "NODE_ENV": "prod",
+            "PORT": "3000",
+            "REDIRECT_URI": "https://clearfin.click/auth/callback",
+            "REDIRECT_URI_ALLOWLIST": "https://clearfin.click/auth/callback",
             "SERVICE_NAME": "auth-service",
           },
           "executionRoleName": "clearfin-prod-auth-service-execution",
@@ -693,6 +699,20 @@ exports[`ClearFinSecurityStack > snapshot: full synthesized configuration 1`] = 
               },
             ],
           },
+          {
+            "name": "secrets-read-google-oauth",
+            "statements": [
+              {
+                "Action": [
+                  "secretsmanager:GetSecretValue",
+                ],
+                "Effect": "Allow",
+                "Resource": [
+                  "arn:aws:secretsmanager:il-central-1:123456789012:secret:/clearfin/prod/_platform/google-oauth-*",
+                ],
+              },
+            ],
+          },
         ],
         "managedPolicies": [],
         "name": "clearfin-prod-auth-service-task",
@@ -878,7 +898,7 @@ exports[`ClearFinStaticHostingStack > snapshot: full synthesized configuration 1
       "responseHeadersPolicy": {
         "name": "clearfin-prod-login-headers",
         "securityHeaders": {
-          "contentSecurityPolicy": "default-src 'self'; script-src 'https://clearfin.example.com'; style-src 'https://clearfin.example.com' 'unsafe-inline'; img-src 'https://clearfin.example.com' data:; connect-src 'https://clearfin.example.com'; frame-ancestors 'none'",
+          "contentSecurityPolicy": "default-src 'self'; script-src 'https://clearfin.example.com'; style-src 'https://clearfin.example.com' 'unsafe-inline' https://fonts.googleapis.com; font-src https://fonts.gstatic.com; img-src 'https://clearfin.example.com' data:; connect-src 'https://clearfin.example.com'; frame-ancestors 'none'",
           "contentTypeOptions": true,
           "frameOptions": "DENY",
           "referrerPolicy": "strict-origin-when-cross-origin",

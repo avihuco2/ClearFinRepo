@@ -318,3 +318,95 @@ describe('Synthesis validation', () => {
     template.resourceCountIs('AWS::CloudFront::OriginAccessControl', 1);
   });
 });
+
+
+// ── Req 3.1, 3.2, 3.3, 3.5: CloudFront ALB origin and /auth/* cache behavior ──
+
+describe('CloudFront ALB Origin (with albDnsName)', () => {
+  const ALB_DNS_NAME = 'clearfin-test-alb-123456.il-central-1.elb.amazonaws.com';
+  let albTemplate: Template;
+
+  beforeAll(() => {
+    const app = new cdk.App();
+    const stack = new StaticHostingCdkStack(app, 'TestStaticHostingWithAlbStack', {
+      clearfinEnv: ENV,
+      cloudFrontConfig,
+      albDnsName: ALB_DNS_NAME,
+    });
+    albTemplate = Template.fromStack(stack);
+  });
+
+  // Req 3.1, 3.5: ALB origin with HTTPS-only protocol policy
+  it('has a second origin pointing to the ALB with HTTPS-only protocol', () => {
+    albTemplate.hasResourceProperties('AWS::CloudFront::Distribution', {
+      DistributionConfig: Match.objectLike({
+        Origins: Match.arrayWith([
+          Match.objectLike({
+            DomainName: ALB_DNS_NAME,
+            CustomOriginConfig: Match.objectLike({
+              OriginProtocolPolicy: 'https-only',
+            }),
+          }),
+        ]),
+      }),
+    });
+  });
+
+  // Req 3.2: /auth/* cache behavior with CachingDisabled
+  it('/auth/* cache behavior exists with CachingDisabled policy', () => {
+    albTemplate.hasResourceProperties('AWS::CloudFront::Distribution', {
+      DistributionConfig: Match.objectLike({
+        CacheBehaviors: Match.arrayWith([
+          Match.objectLike({
+            PathPattern: '/auth/*',
+            CachePolicyId: '4135ea2d-6df8-44a3-9df3-4b5a84be39ad',
+          }),
+        ]),
+      }),
+    });
+  });
+
+  // Req 3.3: AllViewerExceptHostHeader origin request policy
+  it('/auth/* behavior uses AllViewerExceptHostHeader origin request policy', () => {
+    albTemplate.hasResourceProperties('AWS::CloudFront::Distribution', {
+      DistributionConfig: Match.objectLike({
+        CacheBehaviors: Match.arrayWith([
+          Match.objectLike({
+            PathPattern: '/auth/*',
+            OriginRequestPolicyId: 'b689b0a8-53d0-40ab-baf2-68738e2966ac',
+          }),
+        ]),
+      }),
+    });
+  });
+
+  // Req 3.1: /auth/* behavior allows all HTTP methods
+  it('/auth/* behavior allows all HTTP methods', () => {
+    albTemplate.hasResourceProperties('AWS::CloudFront::Distribution', {
+      DistributionConfig: Match.objectLike({
+        CacheBehaviors: Match.arrayWith([
+          Match.objectLike({
+            PathPattern: '/auth/*',
+            AllowedMethods: Match.arrayWith([
+              'GET', 'HEAD', 'OPTIONS', 'PUT', 'PATCH', 'POST', 'DELETE',
+            ]),
+          }),
+        ]),
+      }),
+    });
+  });
+
+  // Req 3.5: /auth/* behavior uses redirect-to-https viewer protocol
+  it('/auth/* behavior uses redirect-to-https viewer protocol policy', () => {
+    albTemplate.hasResourceProperties('AWS::CloudFront::Distribution', {
+      DistributionConfig: Match.objectLike({
+        CacheBehaviors: Match.arrayWith([
+          Match.objectLike({
+            PathPattern: '/auth/*',
+            ViewerProtocolPolicy: 'redirect-to-https',
+          }),
+        ]),
+      }),
+    });
+  });
+});

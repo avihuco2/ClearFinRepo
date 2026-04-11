@@ -128,6 +128,55 @@ describe('ECS Fargate configuration', () => {
   });
 });
 
+// ── Task 2.2: Auth-service environment variables (Req 4.1–4.4) ──────
+
+describe('Auth-service environment variables', () => {
+  const cluster = buildEcsClusterConfig('prod');
+  const authService = cluster.services.find((s) => s.name === 'clearfin-auth-service');
+  const nonAuthServices = cluster.services.filter((s) => s.name !== 'clearfin-auth-service');
+
+  it('auth-service has REDIRECT_URI set to clearfin.click callback (Req 4.1)', () => {
+    expect(authService).toBeDefined();
+    expect(authService!.taskDefinition.environment.REDIRECT_URI).toBe(
+      'https://clearfin.click/auth/callback'
+    );
+  });
+
+  it('auth-service has REDIRECT_URI_ALLOWLIST matching REDIRECT_URI (Req 4.2)', () => {
+    expect(authService!.taskDefinition.environment.REDIRECT_URI_ALLOWLIST).toBe(
+      'https://clearfin.click/auth/callback'
+    );
+  });
+
+  it('auth-service has DASHBOARD_URL set to clearfin.click (Req 4.3)', () => {
+    expect(authService!.taskDefinition.environment.DASHBOARD_URL).toBe('https://clearfin.click');
+  });
+
+  it('auth-service has EXPECTED_ISS set to accounts.google.com (Req 4.4)', () => {
+    expect(authService!.taskDefinition.environment.EXPECTED_ISS).toBe(
+      'https://accounts.google.com'
+    );
+  });
+
+  it('auth-service has GOOGLE_OAUTH_SECRET_NAME pointing to correct Secrets Manager path', () => {
+    expect(authService!.taskDefinition.environment.GOOGLE_OAUTH_SECRET_NAME).toBe(
+      '/clearfin/prod/_platform/google-oauth'
+    );
+  });
+
+  it('non-auth services do not have Google OAuth environment variables', () => {
+    expect(nonAuthServices.length).toBeGreaterThanOrEqual(1);
+    for (const svc of nonAuthServices) {
+      const env = svc.taskDefinition.environment;
+      expect(env.REDIRECT_URI).toBeUndefined();
+      expect(env.REDIRECT_URI_ALLOWLIST).toBeUndefined();
+      expect(env.DASHBOARD_URL).toBeUndefined();
+      expect(env.EXPECTED_ISS).toBeUndefined();
+      expect(env.GOOGLE_OAUTH_SECRET_NAME).toBeUndefined();
+    }
+  });
+});
+
 // ── Task 12.3: ECR ──────────────────────────────────────────────────
 
 describe('ECR repository configuration', () => {
@@ -301,6 +350,37 @@ describe('IAM and KMS configuration', () => {
       const kmsPolicy = role.inlinePolicies.find((p) => p.name === 'kms-decrypt');
       expect(kmsPolicy).toBeDefined();
       expect(kmsPolicy!.statements[0].Action).toContain('kms:Decrypt');
+    }
+  });
+
+  it('auth-service task role has secretsmanager:GetSecretValue for google-oauth (Req 2.3)', () => {
+    const authTaskRole = iam.roles.find((r) => r.name === 'clearfin-prod-auth-service-task');
+    expect(authTaskRole).toBeDefined();
+
+    const secretsPolicy = authTaskRole!.inlinePolicies.find(
+      (p) => p.name === 'secrets-read-google-oauth'
+    );
+    expect(secretsPolicy).toBeDefined();
+    expect(secretsPolicy!.statements).toHaveLength(1);
+    expect(secretsPolicy!.statements[0].Action).toContain('secretsmanager:GetSecretValue');
+    expect(secretsPolicy!.statements[0].Resource).toEqual([
+      'arn:aws:secretsmanager:il-central-1:123456789012:secret:/clearfin/prod/_platform/google-oauth-*',
+    ]);
+  });
+
+  it('non-auth-service task roles do not have the google-oauth secrets policy', () => {
+    const nonAuthTaskRoles = iam.roles.filter(
+      (r) =>
+        r.name.includes('-task') &&
+        !r.name.includes('execution') &&
+        !r.name.includes('base') &&
+        !r.name.includes('auth-service')
+    );
+    for (const role of nonAuthTaskRoles) {
+      const secretsPolicy = role.inlinePolicies.find(
+        (p) => p.name === 'secrets-read-google-oauth'
+      );
+      expect(secretsPolicy).toBeUndefined();
     }
   });
 });

@@ -11,6 +11,7 @@ import type { CloudFrontConfig } from '../cloudfront.js';
 export interface StaticHostingCdkStackProps extends cdk.StackProps {
   clearfinEnv: string;
   cloudFrontConfig: CloudFrontConfig;
+  albDnsName?: string;
 }
 
 export class StaticHostingCdkStack extends cdk.Stack {
@@ -110,6 +111,24 @@ export class StaticHostingCdkStack extends cdk.Stack {
     // Apply per-distribution tags
     for (const [key, value] of Object.entries(distCfg.tags)) {
       cdk.Tags.of(this.distribution).add(key, value);
+    }
+
+    // ─── ALB Origin for /auth/* ────────────────────────────────────────
+    // Req 3.1: ALB origin with HTTPS-only protocol policy
+    // Req 3.2: /auth/* cache behavior with CachingDisabled
+    // Req 3.3: AllViewerExceptHostHeader forwards query strings + cookies
+    // Req 3.5: HTTPS-only origin protocol policy
+    if (props.albDnsName) {
+      const albOrigin = new origins.HttpOrigin(props.albDnsName, {
+        protocolPolicy: cloudfront.OriginProtocolPolicy.HTTPS_ONLY,
+      });
+
+      this.distribution.addBehavior('/auth/*', albOrigin, {
+        viewerProtocolPolicy: cloudfront.ViewerProtocolPolicy.REDIRECT_TO_HTTPS,
+        cachePolicy: cloudfront.CachePolicy.CACHING_DISABLED,
+        originRequestPolicy: cloudfront.OriginRequestPolicy.ALL_VIEWER_EXCEPT_HOST_HEADER,
+        allowedMethods: cloudfront.AllowedMethods.ALLOW_ALL,
+      });
     }
   }
 }

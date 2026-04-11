@@ -19,7 +19,7 @@ const defaultConfig: LoginPageConfig = {
   appOrigin: "https://app.clearfin.io",
 };
 
-// ── 10.1: Login page rendering (Requirements 8.1, 8.3, 8.7, 8.8) ───
+// ── 10.1: Login page rendering (Requirements 8.1, 8.2, 8.3, 8.4, 8.6, 8.7, 8.8) ───
 
 describe("renderLoginPage", () => {
   it("renders HTML containing the ClearFin branding", () => {
@@ -69,6 +69,70 @@ describe("renderLoginPage", () => {
     const html = renderLoginPage(defaultConfig);
     expect(html).toContain("/auth/login");
     expect(html).toContain("/dashboard");
+  });
+
+  // ── Requirement 8.2: Distinctive typography from Google Fonts ──
+
+  it("includes Google Fonts link for DM Serif Display and DM Sans", () => {
+    const html = renderLoginPage(defaultConfig);
+    expect(html).toContain("fonts.googleapis.com");
+    expect(html).toContain("DM+Serif+Display");
+    expect(html).toContain("DM+Sans");
+  });
+
+  // ── Requirement 8.3: CSS custom properties for cohesive color palette ──
+
+  it("defines CSS custom properties for the dark theme color palette", () => {
+    const html = renderLoginPage(defaultConfig);
+    expect(html).toContain("--bg-primary");
+    expect(html).toContain("--accent-gold");
+    expect(html).toContain("--text-primary");
+    expect(html).toContain("--text-secondary");
+    expect(html).toContain("--bg-card");
+  });
+
+  // ── Requirement 8.4: Animations and micro-interactions ──
+
+  it("includes @keyframes animation definitions for page-load reveals", () => {
+    const html = renderLoginPage(defaultConfig);
+    expect(html).toContain("@keyframes fadeInUp");
+    expect(html).toContain("@keyframes fadeIn");
+    expect(html).toContain("@keyframes glowPulse");
+  });
+
+  // ── Requirement 8.6: ClearFin branding with logo, name, tagline ──
+
+  it("displays ClearFin branding with logo, name, and tagline", () => {
+    const html = renderLoginPage(defaultConfig);
+    expect(html).toContain("ClearFin");
+    expect(html).toContain("tagline");
+    expect(html).toContain("Secure financial intelligence");
+  });
+
+  // ── Requirement 8.7: WCAG 2.1 AA with :focus-visible and aria-label ──
+
+  it("includes :focus-visible styles on interactive elements", () => {
+    const html = renderLoginPage(defaultConfig);
+    // Both the sign-in button and try-again button should have focus-visible styles
+    const focusVisibleCount = (html.match(/focus-visible/g) || []).length;
+    expect(focusVisibleCount).toBeGreaterThanOrEqual(2);
+  });
+
+  it("includes aria-label on the sign-in button for accessibility", () => {
+    const html = renderLoginPage(defaultConfig);
+    expect(html).toContain('aria-label="Sign in with Google"');
+  });
+
+  // ── Requirement 8.8: Responsive 320px–1920px with clamp() ──
+
+  it("uses CSS clamp() for responsive typography", () => {
+    const html = renderLoginPage(defaultConfig);
+    expect(html).toContain("clamp(");
+  });
+
+  it("includes @media responsive queries for layout adaptation", () => {
+    const html = renderLoginPage(defaultConfig);
+    expect(html).toContain("@media");
   });
 });
 
@@ -160,6 +224,16 @@ describe("buildCspHeaderValue", () => {
   it("sets default-src to self", () => {
     const csp = buildCspHeaderValue("https://app.clearfin.io");
     expect(csp).toContain("default-src 'self'");
+  });
+
+  it("allows Google Fonts in style-src", () => {
+    const csp = buildCspHeaderValue("https://app.clearfin.io");
+    expect(csp).toContain("style-src 'self' 'unsafe-inline' https://fonts.googleapis.com");
+  });
+
+  it("includes font-src for Google Fonts static assets", () => {
+    const csp = buildCspHeaderValue("https://app.clearfin.io");
+    expect(csp).toContain("font-src https://fonts.gstatic.com");
   });
 });
 

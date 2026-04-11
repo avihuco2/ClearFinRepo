@@ -82,7 +82,7 @@ export function buildCloudFrontConfig(env: string, appOrigin: string): CloudFron
   const responseHeadersPolicy: ResponseHeadersPolicyConfig = {
     name: `clearfin-${env}-login-headers`,
     securityHeaders: {
-      contentSecurityPolicy: `default-src 'self'; script-src '${appOrigin}'; style-src '${appOrigin}' 'unsafe-inline'; img-src '${appOrigin}' data:; connect-src '${appOrigin}'; frame-ancestors 'none'`,
+      contentSecurityPolicy: `default-src 'self'; script-src '${appOrigin}'; style-src '${appOrigin}' 'unsafe-inline' https://fonts.googleapis.com; font-src https://fonts.gstatic.com; img-src '${appOrigin}' data:; connect-src '${appOrigin}'; frame-ancestors 'none'`,
       strictTransportSecurity: 'max-age=31536000; includeSubDomains',
       contentTypeOptions: true,
       frameOptions: 'DENY' as const,

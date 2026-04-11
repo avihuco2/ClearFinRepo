@@ -258,6 +258,28 @@ describe('ALB Security Group', () => {
   });
 });
 
+describe('Auth-service ECS activation (Req 5.1, 5.3)', () => {
+  it('auth-service Fargate service has DesiredCount >= 1', () => {
+    const services = template.findResources('AWS::ECS::Service', {
+      Properties: { ServiceName: 'clearfin-auth-service' },
+    });
+    const logicalIds = Object.keys(services);
+    expect(logicalIds.length).toBe(1);
+    const desiredCount = (services[logicalIds[0]] as any).Properties.DesiredCount;
+    expect(desiredCount).toBeGreaterThanOrEqual(1);
+  });
+
+  it('auth-service Fargate service has AssignPublicIp DISABLED', () => {
+    const services = template.findResources('AWS::ECS::Service', {
+      Properties: { ServiceName: 'clearfin-auth-service' },
+    });
+    const logicalIds = Object.keys(services);
+    expect(logicalIds.length).toBe(1);
+    const awsvpc = (services[logicalIds[0]] as any).Properties.NetworkConfiguration?.AwsvpcConfiguration;
+    expect(awsvpc.AssignPublicIp).toBe('DISABLED');
+  });
+});
+
 describe('Synthesis validation', () => {
   it('synthesizes without errors using config builder output', () => {
     const resources = template.toJSON().Resources;

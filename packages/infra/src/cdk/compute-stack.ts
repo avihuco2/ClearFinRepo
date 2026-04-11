@@ -227,7 +227,7 @@ export class ComputeCdkStack extends cdk.Stack {
         serviceName: svcCfg.name,
         cluster: this.ecsCluster,
         taskDefinition: taskDef,
-        desiredCount: 0, // Start with 0 tasks — scale up after initial stack creation to avoid CF timeout
+        desiredCount: svcCfg.desiredCount,
         assignPublicIp: svcCfg.assignPublicIp,
         vpcSubnets: { subnets: privateSubnets },
       });

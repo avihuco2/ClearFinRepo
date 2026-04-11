@@ -111,21 +111,8 @@ export function buildIamConfig(env: string, accountId: string, region: string): 
     },
   }));
 
-  const taskRoles: IamRoleConfig[] = SERVICES.map((svc) => ({
-    name: `clearfin-${env}-${svc}-task`,
-    description: `ECS task role for ${svc} — runtime permissions`,
-    trustPolicy: {
-      Version: '2012-10-17' as const,
-      Statement: [
-        {
-          Effect: 'Allow' as const,
-          Principal: { Service: 'ecs-tasks.amazonaws.com' },
-          Action: 'sts:AssumeRole',
-        },
-      ],
-    },
-    managedPolicies: [],
-    inlinePolicies: [
+  const taskRoles: IamRoleConfig[] = SERVICES.map((svc) => {
+    const inlinePolicies: IamRoleConfig['inlinePolicies'] = [
       {
         name: 'kms-decrypt',
         statements: [
@@ -136,14 +123,46 @@ export function buildIamConfig(env: string, accountId: string, region: string): 
           },
         ],
       },
-    ],
-    tags: {
-      Project: 'ClearFin',
-      Environment: env,
-      Component: 'iam',
-      Service: svc,
-    },
-  }));
+    ];
+
+    if (svc === 'auth-service') {
+      inlinePolicies.push({
+        name: 'secrets-read-google-oauth',
+        statements: [
+          {
+            Effect: 'Allow' as const,
+            Action: ['secretsmanager:GetSecretValue'],
+            Resource: [
+              `arn:aws:secretsmanager:${region}:${accountId}:secret:/clearfin/${env}/_platform/google-oauth-*`,
+            ],
+          },
+        ],
+      });
+    }
+
+    return {
+      name: `clearfin-${env}-${svc}-task`,
+      description: `ECS task role for ${svc} — runtime permissions`,
+      trustPolicy: {
+        Version: '2012-10-17' as const,
+        Statement: [
+          {
+            Effect: 'Allow' as const,
+            Principal: { Service: 'ecs-tasks.amazonaws.com' },
+            Action: 'sts:AssumeRole',
+          },
+        ],
+      },
+      managedPolicies: [],
+      inlinePolicies,
+      tags: {
+        Project: 'ClearFin',
+        Environment: env,
+        Component: 'iam',
+        Service: svc,
+      },
+    };
+  });
 
   // STS base role for JIT credential assumption (Req 4.8)
   const stsBaseRole: IamRoleConfig = {
