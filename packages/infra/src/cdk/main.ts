@@ -4,17 +4,17 @@
 // Validates: Requirements 8.1, 8.2, 8.3, 8.4, 8.5, 9.4, 10.1, 10.4
 
 import * as cdk from 'aws-cdk-lib';
-import { NetworkingCdkStack } from './networking-stack.js';
-import { SecurityCdkStack } from './security-stack.js';
-import { ComputeCdkStack } from './compute-stack.js';
-import { StaticHostingCdkStack } from './static-hosting-stack.js';
-import { buildVpcConfig } from '../vpc.js';
-import { buildIamConfig } from '../iam.js';
-import { buildCloudTrailConfig } from '../cloudtrail.js';
-import { buildEcsClusterConfig } from '../ecs.js';
-import { buildEcrRepositoryConfigs } from '../ecr.js';
-import { buildAlbConfig } from '../alb.js';
-import { buildCloudFrontConfig } from '../cloudfront.js';
+import { NetworkingCdkStack } from './networking-stack';
+import { SecurityCdkStack } from './security-stack';
+import { ComputeCdkStack } from './compute-stack';
+import { StaticHostingCdkStack } from './static-hosting-stack';
+import { buildVpcConfig } from '../vpc';
+import { buildIamConfig } from '../iam';
+import { buildCloudTrailConfig } from '../cloudtrail';
+import { buildEcsClusterConfig } from '../ecs';
+import { buildEcrRepositoryConfigs } from '../ecr';
+import { buildAlbConfig } from '../alb';
+import { buildCloudFrontConfig } from '../cloudfront';
 
 const app = new cdk.App();
 
@@ -51,6 +51,9 @@ const securityStack = new SecurityCdkStack(app, `clearfin-${environment}-securit
 
 // ─── 3. ComputeCdkStack (depends on Networking + Security) ─────────────
 // Req 8.2, 8.3, 8.4: Cross-stack references from Networking and Security
+// Pass string-based ARNs/IDs instead of direct construct references to
+// avoid CDK dependency cycles. ComputeStack imports them internally
+// using fromXxxArn/fromXxxAttributes with { mutable: false }.
 const computeStack = new ComputeCdkStack(app, `clearfin-${environment}-compute`, {
   env,
   clearfinEnv: environment,
@@ -60,12 +63,17 @@ const computeStack = new ComputeCdkStack(app, `clearfin-${environment}-compute`,
   ecsClusterConfig: buildEcsClusterConfig(environment),
   ecrRepositoryConfigs: buildEcrRepositoryConfigs(environment),
   albConfig: buildAlbConfig(environment, certificateArn),
-  vpc: networkingStack.vpc,
-  privateSubnets: networkingStack.privateSubnets,
-  publicSubnets: networkingStack.publicSubnets,
-  taskExecutionRoles: securityStack.taskExecutionRoles,
-  taskRoles: securityStack.taskRoles,
-  kmsKey: securityStack.kmsKey,
+  vpcId: networkingStack.vpc.vpcId,
+  availabilityZones: ['il-central-1a', 'il-central-1b'],
+  privateSubnetIds: networkingStack.privateSubnets.map(s => s.subnetId),
+  publicSubnetIds: networkingStack.publicSubnets.map(s => s.subnetId),
+  taskExecutionRoleArns: Object.fromEntries(
+    Object.entries(securityStack.taskExecutionRoles).map(([k, v]) => [k, v.roleArn]),
+  ),
+  taskRoleArns: Object.fromEntries(
+    Object.entries(securityStack.taskRoles).map(([k, v]) => [k, v.roleArn]),
+  ),
+  kmsKeyArn: securityStack.kmsKey.keyArn,
   tags: { Project: 'ClearFin', Environment: environment, Component: 'compute' },
 });
 

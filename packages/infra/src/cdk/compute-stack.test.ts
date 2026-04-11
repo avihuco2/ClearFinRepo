@@ -3,9 +3,6 @@
 
 import { describe, it, expect, beforeAll } from 'vitest';
 import * as cdk from 'aws-cdk-lib';
-import * as ec2 from 'aws-cdk-lib/aws-ec2';
-import * as iam from 'aws-cdk-lib/aws-iam';
-import * as kms from 'aws-cdk-lib/aws-kms';
 import { Template, Match } from 'aws-cdk-lib/assertions';
 import { ComputeCdkStack } from './compute-stack.js';
 import { buildEcsClusterConfig } from '../ecs.js';
@@ -24,65 +21,22 @@ let template: Template;
  * Creates a self-contained ComputeCdkStack for testing.
  *
  * All cross-stack dependencies (VPC, subnets, IAM roles, KMS key) are
- * imported by ARN/attributes within a helper stack's scope, avoiding
- * CDK cross-stack dependency cycles. Since imported references don't
- * create CloudFormation resources, no cross-stack exports are needed.
+ * passed as string ARNs/IDs. ComputeCdkStack imports them internally
+ * using fromXxxArn/fromXxxAttributes with { mutable: false }, avoiding
+ * CDK cross-stack dependency cycles.
  */
 function buildTestStack(): ComputeCdkStack {
   const app = new cdk.App();
   const ecsClusterConfig = buildEcsClusterConfig(ENV);
 
-  // Create a helper stack to hold imported (ARN-based) references.
-  // These don't create real CloudFormation resources, so no reverse
-  // cross-stack dependencies are introduced.
-  const helperStack = new cdk.Stack(app, 'TestComputeStack', {
-    env: { account: ACCOUNT_ID, region: REGION },
-  });
-
-  const vpc = ec2.Vpc.fromVpcAttributes(helperStack, 'ImportedVpc', {
-    vpcId: 'vpc-test123',
-    availabilityZones: ['il-central-1a', 'il-central-1b'],
-    publicSubnetIds: ['subnet-pub1', 'subnet-pub2'],
-    privateSubnetIds: ['subnet-priv1', 'subnet-priv2'],
-  });
-
-  const privateSubnets = [
-    ec2.Subnet.fromSubnetAttributes(helperStack, 'PrivSub1', {
-      subnetId: 'subnet-priv1', availabilityZone: 'il-central-1a',
-    }),
-    ec2.Subnet.fromSubnetAttributes(helperStack, 'PrivSub2', {
-      subnetId: 'subnet-priv2', availabilityZone: 'il-central-1b',
-    }),
-  ];
-
-  const publicSubnets = [
-    ec2.Subnet.fromSubnetAttributes(helperStack, 'PubSub1', {
-      subnetId: 'subnet-pub1', availabilityZone: 'il-central-1a',
-    }),
-    ec2.Subnet.fromSubnetAttributes(helperStack, 'PubSub2', {
-      subnetId: 'subnet-pub2', availabilityZone: 'il-central-1b',
-    }),
-  ];
-
-  const taskExecutionRoles: Record<string, iam.IRole> = {};
-  const taskRoles: Record<string, iam.IRole> = {};
+  const taskExecutionRoleArns: Record<string, string> = {};
+  const taskRoleArns: Record<string, string> = {};
   for (const svc of ecsClusterConfig.services) {
     const execName = svc.taskDefinition.executionRoleName;
-    taskExecutionRoles[execName] = iam.Role.fromRoleArn(
-      helperStack, `Import-${execName}`,
-      `arn:aws:iam::${ACCOUNT_ID}:role/${execName}`,
-    );
+    taskExecutionRoleArns[execName] = `arn:aws:iam::${ACCOUNT_ID}:role/${execName}`;
     const taskName = svc.taskDefinition.taskRoleName;
-    taskRoles[taskName] = iam.Role.fromRoleArn(
-      helperStack, `Import-${taskName}`,
-      `arn:aws:iam::${ACCOUNT_ID}:role/${taskName}`,
-    );
+    taskRoleArns[taskName] = `arn:aws:iam::${ACCOUNT_ID}:role/${taskName}`;
   }
-
-  const kmsKey = kms.Key.fromKeyArn(
-    helperStack, 'ImportedKmsKey',
-    `arn:aws:kms:${REGION}:${ACCOUNT_ID}:key/test-key-id`,
-  );
 
   const computeStack = new ComputeCdkStack(app, 'RealComputeStack', {
     env: { account: ACCOUNT_ID, region: REGION },
@@ -93,12 +47,13 @@ function buildTestStack(): ComputeCdkStack {
     ecsClusterConfig,
     ecrRepositoryConfigs: buildEcrRepositoryConfigs(ENV),
     albConfig: buildAlbConfig(ENV, CERTIFICATE_ARN),
-    vpc,
-    privateSubnets,
-    publicSubnets,
-    taskExecutionRoles,
-    taskRoles,
-    kmsKey,
+    vpcId: 'vpc-test123',
+    availabilityZones: ['il-central-1a', 'il-central-1b'],
+    privateSubnetIds: ['subnet-priv1', 'subnet-priv2'],
+    publicSubnetIds: ['subnet-pub1', 'subnet-pub2'],
+    taskExecutionRoleArns,
+    taskRoleArns,
+    kmsKeyArn: `arn:aws:kms:${REGION}:${ACCOUNT_ID}:key/test-key-id`,
   });
 
   return computeStack;

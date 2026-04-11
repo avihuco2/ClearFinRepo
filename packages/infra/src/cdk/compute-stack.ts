@@ -21,12 +21,13 @@ export interface ComputeCdkStackProps extends cdk.StackProps {
   ecsClusterConfig: EcsClusterConfig;
   ecrRepositoryConfigs: EcrRepositoryConfig[];
   albConfig: AlbConfig;
-  vpc: ec2.IVpc;
-  privateSubnets: ec2.ISubnet[];
-  publicSubnets: ec2.ISubnet[];
-  taskExecutionRoles: Record<string, iam.IRole>;
-  taskRoles: Record<string, iam.IRole>;
-  kmsKey: kms.IKey;
+  vpcId: string;
+  availabilityZones: string[];
+  privateSubnetIds: string[];
+  publicSubnetIds: string[];
+  taskExecutionRoleArns: Record<string, string>;
+  taskRoleArns: Record<string, string>;
+  kmsKeyArn: string;
 }
 
 export class ComputeCdkStack extends cdk.Stack {
@@ -45,13 +46,43 @@ export class ComputeCdkStack extends cdk.Stack {
       ecsClusterConfig,
       ecrRepositoryConfigs,
       albConfig,
-      vpc,
-      privateSubnets,
-      publicSubnets,
-      taskExecutionRoles,
-      taskRoles,
-      kmsKey,
     } = props;
+
+    // Import cross-stack references by ARN to avoid CDK dependency cycles.
+    // Using { mutable: false } on roles prevents CDK from adding grants
+    // that would create back-references to this stack.
+    const vpc = ec2.Vpc.fromVpcAttributes(this, 'ImportedVpc', {
+      vpcId: props.vpcId,
+      availabilityZones: props.availabilityZones,
+      publicSubnetIds: props.publicSubnetIds,
+      privateSubnetIds: props.privateSubnetIds,
+    });
+
+    const privateSubnets = props.privateSubnetIds.map((id, i) =>
+      ec2.Subnet.fromSubnetAttributes(this, `PrivSub${i}`, {
+        subnetId: id,
+        availabilityZone: props.availabilityZones[i],
+      }),
+    );
+
+    const publicSubnets = props.publicSubnetIds.map((id, i) =>
+      ec2.Subnet.fromSubnetAttributes(this, `PubSub${i}`, {
+        subnetId: id,
+        availabilityZone: props.availabilityZones[i],
+      }),
+    );
+
+    const taskExecutionRoles: Record<string, iam.IRole> = {};
+    for (const [name, arn] of Object.entries(props.taskExecutionRoleArns)) {
+      taskExecutionRoles[name] = iam.Role.fromRoleArn(this, `ExecRole-${name}`, arn, { mutable: false });
+    }
+
+    const taskRoles: Record<string, iam.IRole> = {};
+    for (const [name, arn] of Object.entries(props.taskRoleArns)) {
+      taskRoles[name] = iam.Role.fromRoleArn(this, `TaskRole-${name}`, arn, { mutable: false });
+    }
+
+    const kmsKey = kms.Key.fromKeyArn(this, 'ImportedKmsKey', props.kmsKeyArn);
 
     // ─── Tags ──────────────────────────────────────────────────────────
     // Req 2.5: Apply ECR repository tags
@@ -80,6 +111,7 @@ export class ComputeCdkStack extends cdk.Stack {
         repositoryName: ecrCfg.name,
         imageTagMutability: ecr.TagMutability.IMMUTABLE,
         imageScanOnPush: ecrCfg.scanOnPush,
+        encryption: ecr.RepositoryEncryption.KMS,
         encryptionKey: kmsKey,
         removalPolicy: cdk.RemovalPolicy.RETAIN,
       });

@@ -3,9 +3,6 @@
 
 import { describe, it, expect, beforeAll } from 'vitest';
 import * as cdk from 'aws-cdk-lib';
-import * as ec2 from 'aws-cdk-lib/aws-ec2';
-import * as iam from 'aws-cdk-lib/aws-iam';
-import * as kms from 'aws-cdk-lib/aws-kms';
 import { Template } from 'aws-cdk-lib/assertions';
 import { NetworkingCdkStack } from './networking-stack.js';
 import { SecurityCdkStack } from './security-stack.js';
@@ -58,56 +55,17 @@ beforeAll(() => {
     tags: { Project: 'ClearFin', Environment: ENV, Component: 'security' },
   });
 
-  // Req 8.2, 8.3, 8.4: ComputeStack with cross-stack references
-  // Cross-stack refs are passed via imported ARN-based lookups to avoid CDK
-  // dependency cycles (same pattern used in compute-stack.test.ts). In a real
-  // deployment CDK resolves these via CloudFormation exports/imports.
-  const helperStack = new cdk.Stack(app, 'HelperImports', { env: cdkEnv });
-
-  const vpc = ec2.Vpc.fromVpcAttributes(helperStack, 'ImportedVpc', {
-    vpcId: 'vpc-test123',
-    availabilityZones: ['il-central-1a', 'il-central-1b'],
-    publicSubnetIds: ['subnet-pub1', 'subnet-pub2'],
-    privateSubnetIds: ['subnet-priv1', 'subnet-priv2'],
-  });
-
-  const privateSubnets = [
-    ec2.Subnet.fromSubnetAttributes(helperStack, 'PrivSub1', {
-      subnetId: 'subnet-priv1', availabilityZone: 'il-central-1a',
-    }),
-    ec2.Subnet.fromSubnetAttributes(helperStack, 'PrivSub2', {
-      subnetId: 'subnet-priv2', availabilityZone: 'il-central-1b',
-    }),
-  ];
-
-  const publicSubnets = [
-    ec2.Subnet.fromSubnetAttributes(helperStack, 'PubSub1', {
-      subnetId: 'subnet-pub1', availabilityZone: 'il-central-1a',
-    }),
-    ec2.Subnet.fromSubnetAttributes(helperStack, 'PubSub2', {
-      subnetId: 'subnet-pub2', availabilityZone: 'il-central-1b',
-    }),
-  ];
-
-  const taskExecutionRoles: Record<string, iam.IRole> = {};
-  const taskRoles: Record<string, iam.IRole> = {};
+  // Req 8.2, 8.3, 8.4: ComputeStack with string-based cross-stack references
+  // Pass ARNs/IDs instead of direct construct references to avoid CDK
+  // dependency cycles. ComputeStack imports them internally.
+  const taskExecutionRoleArns: Record<string, string> = {};
+  const taskRoleArns: Record<string, string> = {};
   for (const svc of ecsClusterConfig.services) {
     const execName = svc.taskDefinition.executionRoleName;
-    taskExecutionRoles[execName] = iam.Role.fromRoleArn(
-      helperStack, `Import-${execName}`,
-      `arn:aws:iam::${ACCOUNT_ID}:role/${execName}`,
-    );
+    taskExecutionRoleArns[execName] = `arn:aws:iam::${ACCOUNT_ID}:role/${execName}`;
     const taskName = svc.taskDefinition.taskRoleName;
-    taskRoles[taskName] = iam.Role.fromRoleArn(
-      helperStack, `Import-${taskName}`,
-      `arn:aws:iam::${ACCOUNT_ID}:role/${taskName}`,
-    );
+    taskRoleArns[taskName] = `arn:aws:iam::${ACCOUNT_ID}:role/${taskName}`;
   }
-
-  const kmsKeyImport = kms.Key.fromKeyArn(
-    helperStack, 'ImportedKmsKey',
-    `arn:aws:kms:${REGION}:${ACCOUNT_ID}:key/test-key-id`,
-  );
 
   computeStack = new ComputeCdkStack(app, `clearfin-${ENV}-compute`, {
     env: cdkEnv,
@@ -118,12 +76,13 @@ beforeAll(() => {
     ecsClusterConfig,
     ecrRepositoryConfigs: buildEcrRepositoryConfigs(ENV),
     albConfig: buildAlbConfig(ENV, CERTIFICATE_ARN),
-    vpc,
-    privateSubnets,
-    publicSubnets,
-    taskExecutionRoles,
-    taskRoles,
-    kmsKey: kmsKeyImport,
+    vpcId: 'vpc-test123',
+    availabilityZones: ['il-central-1a', 'il-central-1b'],
+    privateSubnetIds: ['subnet-priv1', 'subnet-priv2'],
+    publicSubnetIds: ['subnet-pub1', 'subnet-pub2'],
+    taskExecutionRoleArns,
+    taskRoleArns,
+    kmsKeyArn: `arn:aws:kms:${REGION}:${ACCOUNT_ID}:key/test-key-id`,
     tags: { Project: 'ClearFin', Environment: ENV, Component: 'compute' },
   });
 
