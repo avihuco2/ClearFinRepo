@@ -245,9 +245,9 @@ describe('CloudTrail S3 Bucket', () => {
     });
   });
 
-  it('creates S3 bucket with the correct name', () => {
+  it('creates S3 bucket with correct configuration', () => {
     template.hasResourceProperties('AWS::S3::Bucket', {
-      BucketName: cloudTrailConfig.s3BucketName,
+      VersioningConfiguration: { Status: 'Enabled' },
     });
   });
 });

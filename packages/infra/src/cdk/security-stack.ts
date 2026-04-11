@@ -155,7 +155,8 @@ export class SecurityCdkStack extends cdk.Stack {
     // ─── CloudTrail S3 Bucket ──────────────────────────────────────────
     // Req 6.2: S3 bucket for CloudTrail logs with encryption, versioning, CloudTrail write policy
     const trailBucket = new s3.Bucket(this, 'CloudTrailBucket', {
-      bucketName: cloudTrailConfig.s3BucketName,
+      // Let CDK generate a unique bucket name to avoid conflicts with
+      // orphaned buckets from previous failed deployments
       encryption: s3.BucketEncryption.S3_MANAGED,
       versioned: true,
       blockPublicAccess: s3.BlockPublicAccess.BLOCK_ALL,
