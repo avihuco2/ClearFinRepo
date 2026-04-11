@@ -31,7 +31,7 @@ describe('S3 Bucket', () => {
 
   it('creates S3 bucket with the correct name', () => {
     template.hasResourceProperties('AWS::S3::Bucket', {
-      BucketName: `clearfin-${ENV}-login-page`,
+      BucketName: `clearfin-${ENV}-login-page-assets`,
     });
   });
 

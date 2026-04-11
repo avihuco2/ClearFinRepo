@@ -252,12 +252,12 @@ jobs:
 
       - name: Sync login page to S3
         run: |
-          aws s3 sync packages/login-page/dist/ s3://clearfin-dev-login-page/ \
+          aws s3 sync packages/login-page/dist/ s3://clearfin-dev-login-page-assets/ \
             --delete \
             --cache-control "max-age=31536000, immutable" \
             --exclude "index.html"
 
-          aws s3 cp packages/login-page/dist/index.html s3://clearfin-dev-login-page/index.html \
+          aws s3 cp packages/login-page/dist/index.html s3://clearfin-dev-login-page-assets/index.html \
             --cache-control "no-cache"
 
       - name: Invalidate CloudFront cache
@@ -354,12 +354,12 @@ jobs:
 
       - name: Sync login page to S3
         run: |
-          aws s3 sync packages/login-page/dist/ s3://clearfin-staging-login-page/ \
+          aws s3 sync packages/login-page/dist/ s3://clearfin-staging-login-page-assets/ \
             --delete \
             --cache-control "max-age=31536000, immutable" \
             --exclude "index.html"
 
-          aws s3 cp packages/login-page/dist/index.html s3://clearfin-staging-login-page/index.html \
+          aws s3 cp packages/login-page/dist/index.html s3://clearfin-staging-login-page-assets/index.html \
             --cache-control "no-cache"
 
       - name: Invalidate CloudFront cache
@@ -456,12 +456,12 @@ jobs:
 
       - name: Sync login page to S3
         run: |
-          aws s3 sync packages/login-page/dist/ s3://clearfin-prod-login-page/ \
+          aws s3 sync packages/login-page/dist/ s3://clearfin-prod-login-page-assets/ \
             --delete \
             --cache-control "max-age=31536000, immutable" \
             --exclude "index.html"
 
-          aws s3 cp packages/login-page/dist/index.html s3://clearfin-prod-login-page/index.html \
+          aws s3 cp packages/login-page/dist/index.html s3://clearfin-prod-login-page-assets/index.html \
             --cache-control "no-cache"
 
       - name: Invalidate CloudFront cache

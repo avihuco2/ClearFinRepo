@@ -35,7 +35,7 @@ export class StaticHostingCdkStack extends cdk.Stack {
     // ─── S3 Bucket ─────────────────────────────────────────────────────
     // Req 7.1: S3 bucket with all public access blocked, AES-256 encryption, versioning
     this.bucket = new s3.Bucket(this, 'LoginPageBucket', {
-      bucketName: bucketCfg.name,
+      bucketName: `${bucketCfg.name}-assets`,
       blockPublicAccess: s3.BlockPublicAccess.BLOCK_ALL,
       encryption: s3.BucketEncryption.S3_MANAGED,
       versioned: bucketCfg.versioning,
