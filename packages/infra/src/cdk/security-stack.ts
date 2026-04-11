@@ -214,19 +214,11 @@ export class SecurityCdkStack extends cdk.Stack {
       }),
     );
 
-    // Req 6.3: Configure event selectors for management events and data events
-    for (const selector of cloudTrailConfig.eventSelectors) {
-      for (const dataResource of selector.dataResources) {
-        trail.addEventSelector(cloudtrail.DataResourceType.S3_OBJECT, dataResource.values, {
-          includeManagementEvents: selector.includeManagementEvents,
-          readWriteType: selector.readWriteType === 'All'
-            ? cloudtrail.ReadWriteType.ALL
-            : selector.readWriteType === 'ReadOnly'
-              ? cloudtrail.ReadWriteType.READ_ONLY
-              : cloudtrail.ReadWriteType.WRITE_ONLY,
-        });
-      }
-    }
+    // Req 6.3: Management events are included by default on the trail.
+    // Data event selectors for Secrets Manager are not added here because
+    // CDK's DataResourceType enum doesn't support AWS::SecretsManager::Secret.
+    // The EventBridge alert rules below monitor all relevant Secrets Manager
+    // API calls via CloudTrail management events instead.
 
     // ─── SNS Topic for Security Alerts ─────────────────────────────────
     // Req 6.5: Create SNS topic for security alerts, reused by all EventBridge rules
