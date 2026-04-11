@@ -194,7 +194,7 @@ jobs:
         with:
           role-to-assume: ${{ vars.AWS_ROLE_ARN }}
           aws-region: ${{ vars.AWS_REGION }}
-          role-duration-seconds: 7200
+          role-duration-seconds: 3600
 
       - name: Download cdk.out artifact
         uses: actions/download-artifact@fa0a91b85d4f404e444e00e005971372dc801d16 # v4
@@ -239,7 +239,7 @@ jobs:
             clearfin-dev-compute \
             clearfin-dev-static-hosting \
             --require-approval never \
-            --concurrency 1 \
+            --concurrency 4 \
             --context environment=dev \
             --context accountId=${{ vars.AWS_ACCOUNT_ID }} \
             --context region=${{ vars.AWS_REGION }} \
@@ -297,7 +297,7 @@ jobs:
         with:
           role-to-assume: ${{ vars.AWS_ROLE_ARN }}
           aws-region: ${{ vars.AWS_REGION }}
-          role-duration-seconds: 7200
+          role-duration-seconds: 3600
 
       - name: Download cdk.out artifact
         uses: actions/download-artifact@fa0a91b85d4f404e444e00e005971372dc801d16 # v4
@@ -342,7 +342,7 @@ jobs:
             clearfin-staging-compute \
             clearfin-staging-static-hosting \
             --require-approval never \
-            --concurrency 1 \
+            --concurrency 4 \
             --context environment=staging \
             --context accountId=${{ vars.AWS_ACCOUNT_ID }} \
             --context region=${{ vars.AWS_REGION }} \
@@ -400,7 +400,7 @@ jobs:
         with:
           role-to-assume: ${{ vars.AWS_ROLE_ARN }}
           aws-region: ${{ vars.AWS_REGION }}
-          role-duration-seconds: 7200
+          role-duration-seconds: 3600
 
       - name: Download cdk.out artifact
         uses: actions/download-artifact@fa0a91b85d4f404e444e00e005971372dc801d16 # v4
@@ -445,7 +445,7 @@ jobs:
             clearfin-prod-compute \
             clearfin-prod-static-hosting \
             --require-approval never \
-            --concurrency 1 \
+            --concurrency 4 \
             --context environment=prod \
             --context accountId=${{ vars.AWS_ACCOUNT_ID }} \
             --context region=${{ vars.AWS_REGION }} \
