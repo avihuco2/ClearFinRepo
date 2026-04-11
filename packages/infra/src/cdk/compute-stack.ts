@@ -31,7 +31,7 @@ export interface ComputeCdkStackProps extends cdk.StackProps {
 }
 
 export class ComputeCdkStack extends cdk.Stack {
-  public readonly ecrRepositories: Record<string, ecr.Repository>;
+  public readonly ecrRepositories: Record<string, ecr.IRepository>;
   public readonly ecsCluster: ecs.Cluster;
   public readonly fargateServices: Record<string, ecs.FargateService>;
   public readonly alb: elbv2.ApplicationLoadBalancer;
@@ -101,44 +101,18 @@ export class ComputeCdkStack extends cdk.Stack {
     }
 
     // ─── ECR Repositories ──────────────────────────────────────────────
-    // Req 2.1, 2.2, 2.3, 2.4, 2.5: ECR repos with immutable tags, scan-on-push, KMS, lifecycle rules
+    // ECR repos are created by the Docker build-push step in CI/CD.
+    // Import them by name so CDK can reference them for container images.
     this.ecrRepositories = {};
 
     for (const ecrCfg of ecrRepositoryConfigs) {
       const repoId = ecrCfg.name.replace(/\//g, '-');
 
-      const repository = new ecr.Repository(this, `EcrRepo-${repoId}`, {
-        repositoryName: ecrCfg.name,
-        imageTagMutability: ecr.TagMutability.IMMUTABLE,
-        imageScanOnPush: ecrCfg.scanOnPush,
-        encryption: ecr.RepositoryEncryption.KMS,
-        encryptionKey: kmsKey,
-        removalPolicy: cdk.RemovalPolicy.RETAIN,
-      });
+      const repository = ecr.Repository.fromRepositoryName(
+        this, `EcrRepo-${repoId}`, ecrCfg.name,
+      );
 
-      // Req 2.4: Lifecycle rules — retain last 10 tagged, expire untagged after 7 days
-      for (const rule of ecrCfg.lifecycleRules) {
-        if (rule.tagStatus === 'tagged') {
-          repository.addLifecycleRule({
-            description: rule.description,
-            tagStatus: ecr.TagStatus.ANY,
-            maxImageCount: rule.countNumber,
-          });
-        } else if (rule.tagStatus === 'untagged') {
-          repository.addLifecycleRule({
-            description: rule.description,
-            tagStatus: ecr.TagStatus.UNTAGGED,
-            maxImageAge: cdk.Duration.days(rule.countNumber),
-          });
-        }
-      }
-
-      // Apply per-repo tags
-      for (const [key, value] of Object.entries(ecrCfg.tags)) {
-        cdk.Tags.of(repository).add(key, value);
-      }
-
-      this.ecrRepositories[ecrCfg.name] = repository;
+      this.ecrRepositories[ecrCfg.name] = repository as ecr.Repository;
     }
 
     // ─── ECS Cluster ───────────────────────────────────────────────────

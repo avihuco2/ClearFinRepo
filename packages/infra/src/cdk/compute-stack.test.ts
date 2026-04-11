@@ -65,43 +65,9 @@ beforeAll(() => {
 
 
 describe('ECR Repositories', () => {
-  it('creates 3 ECR repositories', () => {
-    template.resourceCountIs('AWS::ECR::Repository', 3);
-  });
-
-  it('creates ECR repository for auth-service with immutable tags', () => {
-    template.hasResourceProperties('AWS::ECR::Repository', {
-      RepositoryName: 'clearfin/auth-service',
-      ImageTagMutability: 'IMMUTABLE',
-    });
-  });
-
-  it('creates ECR repository for sts-broker with immutable tags', () => {
-    template.hasResourceProperties('AWS::ECR::Repository', {
-      RepositoryName: 'clearfin/sts-broker',
-      ImageTagMutability: 'IMMUTABLE',
-    });
-  });
-
-  it('creates ECR repository for secrets-hierarchy-manager with immutable tags', () => {
-    template.hasResourceProperties('AWS::ECR::Repository', {
-      RepositoryName: 'clearfin/secrets-hierarchy-manager',
-      ImageTagMutability: 'IMMUTABLE',
-    });
-  });
-
-  it('all ECR repositories have scan-on-push enabled', () => {
-    const repos = template.findResources('AWS::ECR::Repository');
-    for (const [, resource] of Object.entries(repos)) {
-      expect((resource as any).Properties.ImageScanningConfiguration.ScanOnPush).toBe(true);
-    }
-  });
-
-  it('all ECR repositories have KMS encryption', () => {
-    const repos = template.findResources('AWS::ECR::Repository');
-    for (const [, resource] of Object.entries(repos)) {
-      expect((resource as any).Properties.EncryptionConfiguration.EncryptionType).toBe('KMS');
-    }
+  it('ECR repositories are imported (not created as CloudFormation resources)', () => {
+    // ECR repos are created by Docker build-push in CI/CD and imported by name
+    template.resourceCountIs('AWS::ECR::Repository', 0);
   });
 });
 
@@ -298,7 +264,6 @@ describe('Synthesis validation', () => {
     expect(Object.keys(resources).length).toBeGreaterThan(0);
   });
   it('produces expected resource types and counts', () => {
-    template.resourceCountIs('AWS::ECR::Repository', 3);
     template.resourceCountIs('AWS::ECS::Cluster', 1);
     template.resourceCountIs('AWS::ECS::TaskDefinition', 3);
     template.resourceCountIs('AWS::ECS::Service', 3);
