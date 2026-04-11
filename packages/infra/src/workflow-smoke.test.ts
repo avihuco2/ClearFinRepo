@@ -177,16 +177,14 @@ describe('Workflow smoke tests (Req 9.1, 9.2, 9.3)', () => {
   // ── Deploy jobs reference correct environments ─────────────────────
 
   describe('deploy jobs reference correct GitHub environments', () => {
-    it('deploy-dev references dev environment', () => {
-      expect(jobHasEnvironment(deployYaml, 'deploy-dev', 'dev')).toBe(true);
-    });
-
-    it('deploy-staging references staging environment', () => {
-      expect(jobHasEnvironment(deployYaml, 'deploy-staging', 'staging')).toBe(true);
-    });
-
     it('deploy-prod references prod environment', () => {
       expect(jobHasEnvironment(deployYaml, 'deploy-prod', 'prod')).toBe(true);
+    });
+
+    it('no dev or staging deploy jobs exist', () => {
+      const jobs = extractJobNames(deployYaml);
+      expect(jobs).not.toContain('deploy-dev');
+      expect(jobs).not.toContain('deploy-staging');
     });
   });
 
@@ -199,10 +197,10 @@ describe('Workflow smoke tests (Req 9.1, 9.2, 9.3)', () => {
 
     it('has environment input', () => {
       expect(bootstrapYaml).toContain('environment:');
-      // Verify all three environment options are present
-      expect(bootstrapYaml).toContain('- dev');
-      expect(bootstrapYaml).toContain('- staging');
+      // Only prod environment option
       expect(bootstrapYaml).toContain('- prod');
+      expect(bootstrapYaml).not.toContain('- dev');
+      expect(bootstrapYaml).not.toContain('- staging');
     });
   });
 
