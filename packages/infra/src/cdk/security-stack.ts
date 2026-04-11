@@ -91,28 +91,65 @@ export class SecurityCdkStack extends cdk.Stack {
 
     // ─── IAM Roles ─────────────────────────────────────────────────────
     // Req 5.2, 5.3, 5.4: Create IAM roles from iamConfig.roles
+    // Create non-STS-base roles first, then STS base role (which references sts-broker-task)
     this.taskExecutionRoles = {};
     this.taskRoles = {};
 
-    for (const roleCfg of iamConfig.roles) {
+    const stsBaseRoleCfg = iamConfig.roles.find(r => r.name.includes('sts-base'));
+    const otherRoleCfgs = iamConfig.roles.filter(r => !r.name.includes('sts-base'));
+
+    for (const roleCfg of otherRoleCfgs) {
       const role = this.createIamRole(roleCfg);
 
-      // Apply per-role tags
       for (const [key, value] of Object.entries(roleCfg.tags)) {
         cdk.Tags.of(role).add(key, value);
       }
 
-      // Categorize: execution roles, task roles, or STS base role
       if (roleCfg.name.includes('execution')) {
         this.taskExecutionRoles[roleCfg.name] = role;
-      } else if (roleCfg.name.includes('sts-base')) {
-        // STS base role — exported but not in taskRoles map
-        this.taskRoles[roleCfg.name] = role;
       } else if (roleCfg.name.includes('task')) {
         this.taskRoles[roleCfg.name] = role;
-        // Grant KMS decrypt/encrypt access to task roles (same-stack reference)
         this.kmsKey.grant(role, 'kms:Decrypt', 'kms:GenerateDataKey', 'kms:DescribeKey');
       }
+    }
+
+    // Create STS base role last — its trust policy references sts-broker-task role
+    // which must exist first. Use the CDK role construct's ARN for the trust policy.
+    if (stsBaseRoleCfg) {
+      const stsBrokerTaskRole = this.taskRoles[`clearfin-${clearfinEnv}-sts-broker-task`];
+
+      const stsBaseRole = new iam.Role(this, stsBaseRoleCfg.name, {
+        roleName: stsBaseRoleCfg.name,
+        description: stsBaseRoleCfg.description.replace(/\u2014/g, '-').replace(/[^\u0009\u000A\u000D\u0020-\u007E\u00A1-\u00FF]/g, ''),
+        assumedBy: stsBrokerTaskRole
+          ? new iam.ArnPrincipal(stsBrokerTaskRole.roleArn)
+          : new iam.ServicePrincipal('ecs-tasks.amazonaws.com'),
+      });
+
+      // Attach inline policies
+      for (const inlinePolicy of stsBaseRoleCfg.inlinePolicies) {
+        const policyStatements = inlinePolicy.statements.map(
+          (stmt) =>
+            new iam.PolicyStatement({
+              effect: stmt.Effect === 'Allow' ? iam.Effect.ALLOW : iam.Effect.DENY,
+              actions: stmt.Action,
+              resources: stmt.Resource,
+              conditions: stmt.Condition,
+            }),
+        );
+        stsBaseRole.attachInlinePolicy(
+          new iam.Policy(this, `${stsBaseRoleCfg.name}-${inlinePolicy.name}`, {
+            policyName: inlinePolicy.name,
+            statements: policyStatements,
+          }),
+        );
+      }
+
+      for (const [key, value] of Object.entries(stsBaseRoleCfg.tags)) {
+        cdk.Tags.of(stsBaseRole).add(key, value);
+      }
+
+      this.taskRoles[stsBaseRoleCfg.name] = stsBaseRole;
     }
 
     // ─── CloudTrail S3 Bucket ──────────────────────────────────────────
@@ -267,7 +304,9 @@ export class SecurityCdkStack extends cdk.Stack {
 
     const role = new iam.Role(this, roleCfg.name, {
       roleName: roleCfg.name,
-      description: roleCfg.description,
+      // Sanitize description: replace em dashes and other non-ASCII chars
+      // that IAM rejects (allowed: [\u0009\u000A\u000D\u0020-\u007E\u00A1-\u00FF])
+      description: roleCfg.description.replace(/\u2014/g, '-').replace(/[^\u0009\u000A\u000D\u0020-\u007E\u00A1-\u00FF]/g, ''),
       assumedBy: new iam.CompositePrincipal(
         ...assumeRolePolicyDocument.statementCount > 0
           ? roleCfg.trustPolicy.Statement.map((stmt) => {

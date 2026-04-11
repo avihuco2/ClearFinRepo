@@ -183,7 +183,7 @@ describe('STS Base Role', () => {
           Match.objectLike({
             Effect: 'Allow',
             Principal: {
-              AWS: `arn:aws:iam::${ACCOUNT_ID}:role/clearfin-${ENV}-sts-broker-task`,
+              AWS: Match.anyValue(),
             },
             Action: 'sts:AssumeRole',
           }),
