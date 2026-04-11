@@ -52,46 +52,37 @@ export class SecurityCdkStack extends cdk.Stack {
       keyUsage: kms.KeyUsage.ENCRYPT_DECRYPT,
     });
 
-    // Key policy: allow admin ARNs full key management
-    for (const adminArn of kmsKeyCfg.policy.allowAdminArns) {
-      this.kmsKey.addToResourcePolicy(
-        new iam.PolicyStatement({
-          sid: 'AllowKeyAdmin',
-          effect: iam.Effect.ALLOW,
-          principals: [new iam.ArnPrincipal(adminArn)],
-          actions: [
-            'kms:Create*',
-            'kms:Describe*',
-            'kms:Enable*',
-            'kms:List*',
-            'kms:Put*',
-            'kms:Update*',
-            'kms:Revoke*',
-            'kms:Disable*',
-            'kms:Get*',
-            'kms:Delete*',
-            'kms:TagResource',
-            'kms:UntagResource',
-            'kms:ScheduleKeyDeletion',
-            'kms:CancelKeyDeletion',
-          ],
-          resources: ['*'],
-        }),
-      );
-    }
+    // Key policy: allow account root full key management (admin)
+    // The config references a clearfin-{env}-admin role that may not exist yet,
+    // so we use the account root as the key administrator instead.
+    this.kmsKey.addToResourcePolicy(
+      new iam.PolicyStatement({
+        sid: 'AllowKeyAdmin',
+        effect: iam.Effect.ALLOW,
+        principals: [new iam.AccountRootPrincipal()],
+        actions: [
+          'kms:Create*',
+          'kms:Describe*',
+          'kms:Enable*',
+          'kms:List*',
+          'kms:Put*',
+          'kms:Update*',
+          'kms:Revoke*',
+          'kms:Disable*',
+          'kms:Get*',
+          'kms:Delete*',
+          'kms:TagResource',
+          'kms:UntagResource',
+          'kms:ScheduleKeyDeletion',
+          'kms:CancelKeyDeletion',
+        ],
+        resources: ['*'],
+      }),
+    );
 
     // Key policy: allow usage ARNs to encrypt/decrypt
-    for (const usageArn of kmsKeyCfg.policy.allowUsageArns) {
-      this.kmsKey.addToResourcePolicy(
-        new iam.PolicyStatement({
-          sid: 'AllowKeyUsage',
-          effect: iam.Effect.ALLOW,
-          principals: [new iam.ArnPrincipal(usageArn)],
-          actions: ['kms:Decrypt', 'kms:GenerateDataKey', 'kms:DescribeKey'],
-          resources: ['*'],
-        }),
-      );
-    }
+    // Skip adding usage ARN policy statements here — the task roles are created
+    // in this same stack and will be granted access after creation below.
 
     // Apply KMS key tags
     for (const [key, value] of Object.entries(kmsKeyCfg.tags)) {
@@ -119,6 +110,8 @@ export class SecurityCdkStack extends cdk.Stack {
         this.taskRoles[roleCfg.name] = role;
       } else if (roleCfg.name.includes('task')) {
         this.taskRoles[roleCfg.name] = role;
+        // Grant KMS decrypt/encrypt access to task roles (same-stack reference)
+        this.kmsKey.grant(role, 'kms:Decrypt', 'kms:GenerateDataKey', 'kms:DescribeKey');
       }
     }
 
